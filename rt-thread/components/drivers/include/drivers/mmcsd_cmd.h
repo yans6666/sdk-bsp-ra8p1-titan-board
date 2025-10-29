@@ -5,8 +5,7 @@
  *
  * Change Logs:
  * Date           Author        Notes
- * 2011-07-25     weety         first version
- * 2024-05-26     HPMicro       add VOLTAGE_SWITCH definition
+ * 2011-07-25     weety     first version
  */
 
 #ifndef __CMD_H__
@@ -27,7 +26,7 @@ extern "C" {
 #define SEND_EXT_CSD          8   /* adtc                    R1  */
 #define SEND_CSD              9   /* ac   [31:16] RCA        R2  */
 #define SEND_CID             10   /* ac   [31:16] RCA        R2  */
-#define VOLTAGE_SWITCH       11   /* ac   [31:0]             R1  */
+#define READ_DAT_UNTIL_STOP  11   /* adtc [31:0] dadr        R1  */
 #define STOP_TRANSMISSION    12   /* ac                      R1b */
 #define SEND_STATUS          13   /* ac   [31:16] RCA        R1  */
 #define GO_INACTIVE_STATE    15   /* ac   [31:16] RCA            */

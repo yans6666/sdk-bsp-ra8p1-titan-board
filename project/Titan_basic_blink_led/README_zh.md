@@ -131,7 +131,7 @@ void hal_entry(void)
 ```c
  \ | /
 - RT -     Thread Operating System
- / | \     5.2.0 build Jul 30 2025 13:29:07
+ / | \     5.1.0 build Jul 30 2025 13:29:07
  2006 - 2024 Copyright by RT-Thread team
 
 Hello RT-Thread!

@@ -349,7 +349,6 @@ int lwp_tty_ioctl_adapter(lwp_tty_t tp, int cmd, int oflags, void *args, rt_thre
             error = IOCTL(TIOCGETA, (rt_caddr_t)&tios, fflags, td);
             if (error)
                 break;
-            cfsetospeed(&tios, tios.__c_ispeed);
             error = _copy_to_user(args, &tios, sizeof(tios));
             break;
 
@@ -357,7 +356,6 @@ int lwp_tty_ioctl_adapter(lwp_tty_t tp, int cmd, int oflags, void *args, rt_thre
             error = _copy_from_user(&tios, args, sizeof(tios));
             if (error)
                 break;
-            tios.__c_ispeed = tios.__c_ospeed = cfgetospeed(&tios);
             error = (IOCTL(TIOCSETA, (rt_caddr_t)&tios, fflags, td));
             break;
 
@@ -539,15 +537,15 @@ int lwp_tty_ioctl_adapter(lwp_tty_t tp, int cmd, int oflags, void *args, rt_thre
             args->cmd = TIOCMSET;
             error = (sys_ioctl(td, (struct ioctl_args *)args));
             break;
-#endif /* USING_BSD_IOCTL_EXT */
+
             /* TIOCGSOFTCAR */
             /* TIOCSSOFTCAR */
 
         case FIONREAD: /* TIOCINQ */
-            error = (IOCTL(FIONREAD, args, fflags, td));
+            args->cmd = FIONREAD;
+            error = (sys_ioctl(td, (struct ioctl_args *)args));
             break;
 
-#ifdef USING_BSD_IOCTL_EXT
             /* TIOCLINUX */
 
         case TIOCCONS:

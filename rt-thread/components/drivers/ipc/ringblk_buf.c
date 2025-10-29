@@ -215,7 +215,6 @@ rt_rbb_blk_t rt_rbb_blk_alloc(rt_rbb_t rbb, rt_size_t blk_size)
                 else
                 {
                     /* no space */
-                    rt_slist_insert(&rbb->free_list, &new_rbb->list);
                     new_rbb = RT_NULL;
                 }
             }
@@ -240,7 +239,6 @@ rt_rbb_blk_t rt_rbb_blk_alloc(rt_rbb_t rbb, rt_size_t blk_size)
                 else
                 {
                     /* no space */
-                    rt_slist_insert(&rbb->free_list, &new_rbb->list);
                     new_rbb = RT_NULL;
                 }
             }
@@ -248,20 +246,15 @@ rt_rbb_blk_t rt_rbb_blk_alloc(rt_rbb_t rbb, rt_size_t blk_size)
         else
         {
             /* the list is empty */
-            if(blk_size <= rbb->buf_size)
-            {
-                list_append(rbb, &new_rbb->list);
-                new_rbb->status = RT_RBB_BLK_INITED;
-                new_rbb->buf = rbb->buf;
-                new_rbb->size = blk_size;
-            }
-            else
-            {
-                /* no space */
-                rt_slist_insert(&rbb->free_list, &new_rbb->list);
-                new_rbb = RT_NULL;
-            }
+            list_append(rbb, &new_rbb->list);
+            new_rbb->status = RT_RBB_BLK_INITED;
+            new_rbb->buf = rbb->buf;
+            new_rbb->size = blk_size;
         }
+    }
+    else
+    {
+        new_rbb = RT_NULL;
     }
 
     rt_spin_unlock_irqrestore(&(rbb->spinlock), level);

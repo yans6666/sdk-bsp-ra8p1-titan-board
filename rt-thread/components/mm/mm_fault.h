@@ -34,12 +34,9 @@ enum rt_mm_fault_type
 {
     /**
      * Occurs when an instruction attempts to access a memory address that it
-     * does not have R/W/X permission to access
+     * does not have permission to access
      */
-    MM_FAULT_TYPE_RWX_PERM,
-
-    /* Without privileges to access (e.g. user accessing kernel) */
-    MM_FAULT_TYPE_NO_PRIVILEGES,
+    MM_FAULT_TYPE_ACCESS_FAULT,
 
     /**
      * Occurs when a load or store instruction accesses a virtual memory
@@ -51,12 +48,6 @@ enum rt_mm_fault_type
      * Occurs like a SIGBUS
      */
     MM_FAULT_TYPE_BUS_ERROR,
-
-    /**
-     * Occurs when page table walk failed, permission failed, writings on
-     * non-dirty page.
-     */
-    MM_FAULT_TYPE_GENERIC_MMU,
 
     MM_FAULT_TYPE_GENERIC,
     __PRIVATE_PAGE_INSERT,

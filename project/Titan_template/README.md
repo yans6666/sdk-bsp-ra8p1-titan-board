@@ -92,7 +92,7 @@ Connect the development board’s corresponding serial port to the PC, open the 
 ```bash
  \ | /
 - RT -     Thread Operating System
- / | \     5.2.0 build Aug 5 2025 17:24:30
+ / | \     5.1.0 build Aug 5 2025 17:24:30
  2006 - 2024 Copyright by RT-Thread team
 
 ==================================================

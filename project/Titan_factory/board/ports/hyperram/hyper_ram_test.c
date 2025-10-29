@@ -5,7 +5,7 @@
 #include <rtthread.h>
 
 #define DBG_TAG "hyperram"
-#define DBG_LVL DBG_INFO
+#define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
 #define ram_cfg     g_ospi1_cfg
@@ -27,9 +27,9 @@ ospi_b_xspi_command_set_t g_hyper_ram_commands[] =
         .address_bytes = SPI_FLASH_ADDRESS_BYTES_4,
 
         .read_command = 0xA0,
-        .read_dummy_cycles = 11,
+        .read_dummy_cycles = 5,
         .program_command = 0x20,
-        .program_dummy_cycles = 11,
+        .program_dummy_cycles = 5,
 
         .address_msb_mask = 0xF0,
         .status_needs_address = false,
@@ -54,7 +54,7 @@ static fsp_err_t hyper_ram_config_get(uint32_t address, uint16_t * const p_value
             .command_length = 2,
             .command = 0xE000,
             .data_length = 2,
-            .dummy_cycles = 1,
+            .dummy_cycles = 5,
     };
 
     fsp_err_t err = R_OSPI_B_DirectTransfer(&ram_ctrl, &xfer, SPI_FLASH_DIRECT_TRANSFER_DIR_READ);
@@ -188,13 +188,25 @@ int hyper_ram_init(void)
     hyper_ram_config_get(HYPER_RAM_CFG_REG_0_ADDRESS, &cfg_reg0);
     LOG_D("Read CR0 value: 0x%x", swap16(cfg_reg0));
 
-    uint16_t value0 = 0x8f1d;
+    uint16_t value0 = 0x8fed;
     hyper_ram_config_set(HYPER_RAM_CFG_REG_0_ADDRESS, swap16(value0));
     LOG_D("Set CR0 to 0x%x", value0);
 
     cfg_reg0 = 0;
     hyper_ram_config_get(HYPER_RAM_CFG_REG_0_ADDRESS, &cfg_reg0);
     LOG_D("Read CR0 value: 0x%x", swap16(cfg_reg0));
+
+    uint16_t cfg_reg1 = 0;
+    hyper_ram_config_get(HYPER_RAM_CFG_REG_1_ADDRESS, &cfg_reg1);
+    LOG_D("Read CR1 value: 0x%x", swap16(cfg_reg1));
+
+    uint16_t value1 = 0xff81;
+    hyper_ram_config_set(HYPER_RAM_CFG_REG_1_ADDRESS, swap16(value1));
+    LOG_D("Set CR1 to 0x%x", value1);
+
+    cfg_reg0 = 0;
+    hyper_ram_config_get(HYPER_RAM_CFG_REG_1_ADDRESS, &cfg_reg1);
+    LOG_D("Read CR1 value: 0x%x", swap16(cfg_reg1));
 
     return RT_EOK;
 }

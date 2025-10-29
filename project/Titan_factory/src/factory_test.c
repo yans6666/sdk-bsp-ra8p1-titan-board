@@ -9,15 +9,23 @@
 #include "hal_data.h"
 #include <rtdevice.h>
 #include <board.h>
-#include <dev_wlan_mgnt.h>
+#include <wlan_mgnt.h>
 #include "factory_test.h"
 #include <netdev_ipaddr.h>
 #include <netdev.h>
 #include "drv_rs485.h"
+#include "camera_layer.h"
+#include "camera_layer_config.h"
 
 #define DBG_TAG "factory"
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
+
+#define DISPLAY_SCREEN_WIDTH              (800)
+#define DISPLAY_SCREEN_HEIGHT             (480)
+
+extern struct rt_completion ceu_completion;
+uint8_t display_layer1_buff_select = 0;
 
 flag_t test_flag;
 
@@ -409,6 +417,57 @@ rt_err_t eth_test()
     return RT_EOK;
 }
 
+void display_entry(void *param)
+{
+    //Initialize camera interface
+    fsp_err_t fsp_status = FSP_SUCCESS;
+    fsp_status = camera_init(false);
+    if(FSP_SUCCESS != fsp_status)
+    {
+        rt_kprintf ("camera_init fail!\n");
+        return;
+    }
+
+    camera_image_buffer_initialize ();
+
+    camera_capture_start();
+
+#if defined(VIN_CFG_USE_RUNTIME_BUFFER)
+    rt_kprintf("The vin driver uses hardware mailboxes for the buffer.\n");
+#else
+    rt_kprintf("The vin driver uses isr for the buffer.\n");
+#endif
+
+    while (1)
+    {
+#ifndef VIN_CFG_USE_RUNTIME_BUFFER
+        rt_completion_wait(&ceu_completion, RT_WAITING_FOREVER);
+#endif
+
+        /* Draw camera image to display buffer */
+        uint16_t * p_src  = (uint16_t *)camera_data_ready_buffer_pointer_get();
+        uint16_t * p_dest = (uint16_t *)&fb_background[display_layer1_buff_select][0];
+        int x_offset = DISPLAY_SCREEN_WIDTH - CAMERA_CAPTURE_IMAGE_WIDTH;
+
+        for(int y = 0; y < CAMERA_CAPTURE_IMAGE_HEIGHT; y++)
+        {
+            for(int x = 0; x < CAMERA_CAPTURE_IMAGE_WIDTH; x++)
+            {
+                *(p_dest + (y * DISPLAY_SCREEN_WIDTH) + (x_offset + x)) = *(p_src + (y * CAMERA_CAPTURE_IMAGE_WIDTH) + x);
+            }
+        }
+
+        rt_thread_mdelay(10);
+    }
+}
+
+int display_test(void)
+{
+    rt_thread_t tid = rt_thread_create("display_t", display_entry, RT_NULL, 2048, 15, 20);
+    return rt_thread_startup(tid);
+}
+MSH_CMD_EXPORT(display_test, mipi_csi camera and rgb lcd test);
+
 void print_error_info(void)
 {
     if (test_flag.flag_err == 0)
@@ -430,7 +489,7 @@ void print_error_info(void)
     }
 }
 
-void test_board_entry(void)
+void factory_test(void)
 {
    rt_kprintf("\n=====================BUZZER TEST=============================\n");
    if (buzzer_test() != RT_EOK)
@@ -439,17 +498,6 @@ void test_board_entry(void)
        ERROR(BUZZER_ERROR);
    }
    rt_kprintf("=====================BUZZER TEST END=============================\n\n");
-
-    rt_thread_mdelay(10);
-
-    rt_kprintf("=====================HyperRAM TEST=============================\n");
-    extern rt_err_t hyper_ram_test();
-    if (RT_EOK != hyper_ram_test())
-    {
-        LOG_E("HyperRAM Test Failed!\n");
-        ERROR(HYPERRAM_ERROR);
-    }
-    rt_kprintf("=====================HyperRAM TEST END=============================\n\n");
 
     rt_thread_mdelay(10);
 
@@ -566,5 +614,9 @@ void test_board_entry(void)
     }
     rt_kprintf("=====================IST8310 TEST END=============================\n\n");
 
+    rt_kprintf("=====================OPEN CAMERA=============================\n");
+    display_test();
+
     print_error_info();
 }
+MSH_CMD_EXPORT(factory_test, start factory test dmeo);

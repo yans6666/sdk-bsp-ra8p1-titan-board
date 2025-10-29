@@ -40,10 +40,10 @@
 #define RT_MEMHEAP_MINIALLOC    RT_ALIGN(12, RT_ALIGN_SIZE)
 
 #define RT_MEMHEAP_SIZE         RT_ALIGN(sizeof(struct rt_memheap_item), RT_ALIGN_SIZE)
-#define MEMITEM_SIZE(item)      ((rt_uintptr_t)item->next - (rt_uintptr_t)item - RT_MEMHEAP_SIZE)
+#define MEMITEM_SIZE(item)      ((rt_ubase_t)item->next - (rt_ubase_t)item - RT_MEMHEAP_SIZE)
 #define MEMITEM(ptr)            (struct rt_memheap_item*)((rt_uint8_t*)ptr - RT_MEMHEAP_SIZE)
 
-static void _remove_next_ptr(volatile struct rt_memheap_item *next_ptr)
+static void _remove_next_ptr(struct rt_memheap_item *next_ptr)
 {
     /* Fix the crash problem after opening Oz optimization on ac6  */
     /* Fix IAR compiler warning  */
@@ -393,7 +393,7 @@ void *rt_memheap_realloc(struct rt_memheap *heap, void *ptr, rt_size_t newsize)
     if (newsize > oldsize)
     {
         void *new_ptr;
-        volatile struct rt_memheap_item *next_ptr;
+        struct rt_memheap_item *next_ptr;
 
         if (heap->locked == RT_FALSE)
         {
@@ -899,10 +899,10 @@ static int memheapcheck(int argc, char *argv[])
                 break;
             }
             /* check next and prev */
-            if (!((rt_uintptr_t)item->next <= (rt_uintptr_t)((rt_uintptr_t)heap->start_addr + heap->pool_size) &&
-                  (rt_uintptr_t)item->prev >= (rt_uintptr_t)heap->start_addr) &&
-                  (rt_uintptr_t)item->next == RT_ALIGN((rt_uintptr_t)item->next, RT_ALIGN_SIZE) &&
-                  (rt_uintptr_t)item->prev == RT_ALIGN((rt_uintptr_t)item->prev, RT_ALIGN_SIZE))
+            if (!((rt_ubase_t)item->next <= (rt_ubase_t)((rt_ubase_t)heap->start_addr + heap->pool_size) &&
+                  (rt_ubase_t)item->prev >= (rt_ubase_t)heap->start_addr) &&
+                  (rt_ubase_t)item->next == RT_ALIGN((rt_ubase_t)item->next, RT_ALIGN_SIZE) &&
+                  (rt_ubase_t)item->prev == RT_ALIGN((rt_ubase_t)item->prev, RT_ALIGN_SIZE))
             {
                 has_bad = RT_TRUE;
                 break;

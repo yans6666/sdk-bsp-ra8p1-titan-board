@@ -131,7 +131,7 @@ At this point, you can also open the default serial port of the development boar
 ```c
  \ | /
 - RT -     Thread Operating System
- / | \     5.2.0 build Jul 30 2025 13:29:07
+ / | \     5.1.0 build Jul 30 2025 13:29:07
  2006 - 2024 Copyright by RT-Thread team
 
 Hello RT-Thread!

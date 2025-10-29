@@ -2,6 +2,7 @@ from building import *
 import os
 
 src = Glob('*.c')
+src += Glob('klibc/*.c')
 cwd = GetCurrentDir()
 inc = [os.path.join(cwd, '..', 'include')]
 
@@ -24,9 +25,9 @@ if GetDepend('RT_USING_DEVICE') == False:
     SrcRemove(src, ['device.c'])
 
 if GetDepend('RT_USING_SMP') == False:
-    SrcRemove(src, ['cpu_mp.c', 'scheduler_mp.c'])
+    SrcRemove(src, ['cpu.c', 'scheduler_mp.c'])
 else:
-    SrcRemove(src, ['cpu_up.c', 'scheduler_up.c'])
+    SrcRemove(src, ['scheduler_up.c'])
 
 LOCAL_CFLAGS = ''
 LINKFLAGS = ''
@@ -47,10 +48,5 @@ if rtconfig.PLATFORM in ['gcc']: # only for GCC
 group = DefineGroup('Kernel', src, depend=[''], CPPPATH=inc,
                     LINKFLAGS=LINKFLAGS, LOCAL_CFLAGS=LOCAL_CFLAGS,
                     CPPDEFINES=['__RTTHREAD__'], LOCAL_CPPDEFINES=['__RT_KERNEL_SOURCE__'])
-
-list = os.listdir(cwd)
-for item in list:
-    if os.path.isfile(os.path.join(cwd, item, 'SConscript')):
-        group = group + SConscript(os.path.join(item, 'SConscript'))
 
 Return('group')

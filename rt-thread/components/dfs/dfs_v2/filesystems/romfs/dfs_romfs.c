@@ -365,7 +365,6 @@ static const struct dfs_file_ops _rom_fops =
 {
     .open             = dfs_romfs_open,
     .close            = dfs_romfs_close,
-    .ioctl            = dfs_romfs_ioctl,
     .lseek            = generic_dfs_lseek,
     .read             = dfs_romfs_read,
     .getdents         = dfs_romfs_getdents,

@@ -12,12 +12,9 @@ if GetDepend(['RT_USING_SMART']):
     src += Glob('serial_tty.c')
 
 if GetDepend(['RT_USING_SERIAL_V2']):
-    src += ['dev_serial_v2.c']
+    src += ['serial_v2.c']
 else:
-    src += ['dev_serial.c']
-
-if GetDepend(['RT_USING_SERIAL_BYPASS']):
-    src += ['bypass.c']
+    src += ['serial.c']
 
 if GetDepend(['RT_USING_DM']):
     src += ['serial_dm.c']

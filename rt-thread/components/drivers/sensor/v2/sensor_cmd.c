@@ -550,7 +550,7 @@ static void sensor_cmd_warning_probe(void)
     LOG_W("Please probe sensor device first!");
 }
 
-static int sensor(int argc, char **argv)
+static void sensor(int argc, char **argv)
 {
     static rt_device_t dev = RT_NULL;
     struct rt_sensor_data data;
@@ -562,14 +562,14 @@ static int sensor(int argc, char **argv)
     if (argc < 2)
     {
         sensor_cmd_warning_unknown();
-        return -RT_ERROR;
+        return;
     }
     else if (!rt_strcmp(argv[1], "info"))
     {
         if (dev == RT_NULL)
         {
             sensor_cmd_warning_probe();
-            return -RT_ERROR;
+            return ;
         }
         sensor = (rt_sensor_t)dev;
         rt_kprintf("name      :%s\n", sensor->info.name);
@@ -595,7 +595,7 @@ static int sensor(int argc, char **argv)
         if (dev == RT_NULL)
         {
             sensor_cmd_warning_probe();
-            return -RT_ERROR;
+            return;
         }
         if (argc == 3)
         {
@@ -628,7 +628,7 @@ static int sensor(int argc, char **argv)
 
         information = rt_object_get_information(RT_Object_Class_Device);
         if(information == RT_NULL)
-            return -RT_ERROR;
+            return;
 
         rt_kprintf("device name sensor name      sensor type     mode resolution range\n");
         rt_kprintf("----------- ------------- ------------------ ---- ---------- ----------\n");
@@ -655,7 +655,7 @@ static int sensor(int argc, char **argv)
         if (dev == RT_NULL)
         {
             sensor_cmd_warning_probe();
-            return -RT_ERROR;
+            return;
         }
 
         if (rt_device_control(dev, RT_SENSOR_CTRL_SOFT_RESET, RT_NULL) != RT_EOK)
@@ -671,19 +671,19 @@ static int sensor(int argc, char **argv)
         if (argc < 3)
         {
             sensor_cmd_warning_unknown();
-            return -RT_ERROR;
+            return;
         }
 
         new_dev = rt_device_find(argv[2]);
         if (new_dev == RT_NULL)
         {
             LOG_E("Can't find device:%s", argv[2]);
-            return -RT_ERROR;
+            return;
         }
         if (rt_device_open(new_dev, RT_DEVICE_FLAG_RDWR) != RT_EOK)
         {
             LOG_E("open device failed!");
-            return -RT_ERROR;
+            return;
         }
         if (rt_device_control(new_dev, RT_SENSOR_CTRL_GET_ID, &reg) == RT_EOK)
         {
@@ -702,7 +702,7 @@ static int sensor(int argc, char **argv)
         if (dev == RT_NULL)
         {
             sensor_cmd_warning_probe();
-            return -RT_ERROR;
+            return;
         }
 
         sensor = (rt_sensor_t)dev;
@@ -734,7 +734,7 @@ static int sensor(int argc, char **argv)
         if (dev == RT_NULL)
         {
             sensor_cmd_warning_probe();
-            return -RT_ERROR;
+            return;
         }
 
         sensor = (rt_sensor_t)dev;
@@ -766,7 +766,7 @@ static int sensor(int argc, char **argv)
         if (dev == RT_NULL)
         {
             sensor_cmd_warning_probe();
-            return -RT_ERROR;
+            return;
         }
 
         sensor = (rt_sensor_t)dev;
@@ -795,7 +795,5 @@ static int sensor(int argc, char **argv)
     {
         sensor_cmd_warning_unknown();
     }
-
-    return RT_EOK;
 }
 MSH_CMD_EXPORT(sensor, sensor test function);

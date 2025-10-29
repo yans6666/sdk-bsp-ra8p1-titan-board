@@ -190,33 +190,6 @@ int dfs_init(void)
 }
 INIT_PREV_EXPORT(dfs_init);
 
-struct dfs_file* dfs_file_create(void)
-{
-    struct dfs_file *file;
-
-    file = (struct dfs_file *)rt_calloc(1, sizeof(struct dfs_file));
-    if (file)
-    {
-        file->magic = DFS_FD_MAGIC;
-        file->ref_count = 1;
-        rt_mutex_init(&file->pos_lock, "fpos", RT_IPC_FLAG_PRIO);
-    }
-
-    return file;
-}
-
-void dfs_file_destroy(struct dfs_file *file)
-{
-    rt_mutex_detach(&file->pos_lock);
-
-    if (file->mmap_context)
-    {
-        rt_free(file->mmap_context);
-    }
-
-    rt_free(file);
-}
-
 /**
  * @ingroup Fd
  * This function will allocate a file descriptor.
@@ -244,10 +217,13 @@ int fdt_fd_new(struct dfs_fdtable *fdt)
     {
         struct dfs_file *file;
 
-        file = dfs_file_create();
+        file = (struct dfs_file *)rt_calloc(1, sizeof(struct dfs_file));
 
         if (file)
         {
+            file->magic = DFS_FD_MAGIC;
+            file->ref_count = 1;
+            rt_mutex_init(&file->pos_lock, "fpos", RT_IPC_FLAG_PRIO);
             fdt->fds[idx] = file;
 
             LOG_D("allocate a new fd @ %d", idx);
@@ -279,7 +255,14 @@ void fdt_fd_release(struct dfs_fdtable *fdt, int fd)
 
         if (file && file->ref_count == 1)
         {
-            dfs_file_destroy(file);
+            rt_mutex_detach(&file->pos_lock);
+
+            if (file->mmap_context)
+            {
+                rt_free(file->mmap_context);
+            }
+
+            rt_free(file);
         }
         else
         {
@@ -554,7 +537,6 @@ int dfs_dup(int oldfd, int startfd)
     fdt = dfs_fdtable_get();
     if ((oldfd < 0) || (oldfd >= fdt->maxfd))
     {
-        rt_set_errno(-EBADF);
         goto exit;
     }
     if (!fdt->fds[oldfd])
@@ -686,17 +668,12 @@ sysret_t sys_dup(int oldfd)
 int sys_dup(int oldfd)
 #endif
 {
-    int err = 0;
     int newfd = dfs_dup(oldfd, (dfs_fdtable_get() == &_fdtab) ? DFS_STDIO_OFFSET : 0);
-    if(newfd < 0)
-    {
-        err = rt_get_errno();
-    }
 
 #ifdef RT_USING_SMART
-    return err < 0 ? err : newfd;
+    return (sysret_t)newfd;
 #else
-    return err < 0 ? err : newfd;
+    return newfd;
 #endif
 }
 

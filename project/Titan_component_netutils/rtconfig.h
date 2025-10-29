@@ -5,64 +5,6 @@
 
 /* RT-Thread Kernel */
 
-/* klibc options */
-
-/* rt_vsnprintf options */
-
-/* end of rt_vsnprintf options */
-
-/* rt_vsscanf options */
-
-/* end of rt_vsscanf options */
-
-/* rt_memset options */
-
-/* end of rt_memset options */
-
-/* rt_memcpy options */
-
-/* end of rt_memcpy options */
-
-/* rt_memmove options */
-
-/* end of rt_memmove options */
-
-/* rt_memcmp options */
-
-/* end of rt_memcmp options */
-
-/* rt_strstr options */
-
-/* end of rt_strstr options */
-
-/* rt_strcasecmp options */
-
-/* end of rt_strcasecmp options */
-
-/* rt_strncpy options */
-
-/* end of rt_strncpy options */
-
-/* rt_strcpy options */
-
-/* end of rt_strcpy options */
-
-/* rt_strncmp options */
-
-/* end of rt_strncmp options */
-
-/* rt_strcmp options */
-
-/* end of rt_strcmp options */
-
-/* rt_strlen options */
-
-/* end of rt_strlen options */
-
-/* rt_strnlen options */
-
-/* end of rt_strnlen options */
-/* end of klibc options */
 #define RT_NAME_MAX 12
 #define RT_CPUS_NR 1
 #define RT_ALIGN_SIZE 8
@@ -79,11 +21,11 @@
 #define RT_TIMER_THREAD_PRIO 4
 #define RT_TIMER_THREAD_STACK_SIZE 512
 
-/* kservice options */
+/* kservice optimization */
 
-/* end of kservice options */
+#define RT_KSERVICE_USING_STDLIB
+/* end of kservice optimization */
 #define RT_USING_DEBUG
-#define RT_DEBUGING_ASSERT
 #define RT_DEBUGING_COLOR
 #define RT_DEBUGING_CONTEXT
 
@@ -109,7 +51,7 @@
 #define RT_USING_CONSOLE
 #define RT_CONSOLEBUF_SIZE 128
 #define RT_CONSOLE_DEVICE_NAME "uart8"
-#define RT_VER_NUM 0x50200
+#define RT_VER_NUM 0x50100
 #define RT_BACKTRACE_LEVEL_MAX_NR 32
 /* end of RT-Thread Kernel */
 #define RT_USING_HW_ATOMIC
@@ -151,7 +93,8 @@
 #define RT_USING_DFS_DEVFS
 /* end of DFS: device virtual file system */
 #define RT_USING_FAL
-#define FAL_USING_DEBUG
+#define FAL_DEBUG_CONFIG
+#define FAL_DEBUG 1
 #define FAL_PART_HAS_TABLE_CFG
 
 /* Device Drivers */
@@ -199,14 +142,11 @@
 #define RT_WLAN_WORKQUEUE_THREAD_NAME "wlan"
 #define RT_WLAN_WORKQUEUE_THREAD_SIZE 2048
 #define RT_WLAN_WORKQUEUE_THREAD_PRIO 15
-#define RT_USING_BLK
-
-/* Partition Types */
-
-#define RT_BLK_PARTITION_DFS
-#define RT_BLK_PARTITION_EFI
-/* end of Partition Types */
 #define RT_USING_PIN
+
+/* Using USB */
+
+/* end of Using USB */
 /* end of Device Drivers */
 
 /* C/C++ and POSIX layer */
@@ -312,11 +252,11 @@
 #define RT_USING_RYM
 #define YMODEM_USING_FILE_TRANSFER
 /* end of Utilities */
-
-/* Using USB legacy version */
-
-/* end of Using USB legacy version */
 /* end of RT-Thread Components */
+
+/* RT-Thread Utestcases */
+
+/* end of RT-Thread Utestcases */
 
 /* RT-Thread online packages */
 
@@ -483,6 +423,10 @@
 /* GD32 Drivers */
 
 /* end of GD32 Drivers */
+
+/* HPMicro SDK */
+
+/* end of HPMicro SDK */
 /* end of HAL & SDK Drivers */
 
 /* sensors drivers */

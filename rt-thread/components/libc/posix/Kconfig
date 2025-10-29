@@ -115,6 +115,6 @@ if RT_USING_MODULE
         default n
 endif
 
-rsource "ipc/Kconfig"
+source "$RTT_DIR/components/libc/posix/ipc/Kconfig"
 
 endmenu

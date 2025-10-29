@@ -106,16 +106,18 @@ int arch_set_thread_context(void (*exit)(void), void *new_thread_stack,
     struct rt_hw_exp_stack *ori_syscall = rt_thread_self()->user_ctx.ctx;
     RT_ASSERT(ori_syscall != RT_NULL);
 
-    new_thread_stack = (rt_ubase_t*)RT_ALIGN_DOWN((rt_ubase_t)new_thread_stack, 16);
+    thread_frame = (void *)((long)new_thread_stack - sizeof(struct rt_hw_exp_stack));
+    syscall_frame = (void *)((long)new_thread_stack - 2 * sizeof(struct rt_hw_exp_stack));
 
-    syscall_frame = (void *)((long)new_thread_stack - sizeof(struct rt_hw_exp_stack));
     memcpy(syscall_frame, ori_syscall, sizeof(*syscall_frame));
     syscall_frame->sp_el0 = (long)user_stack;
     syscall_frame->x0 = 0;
 
-    thread_frame = (void *)rt_hw_stack_init(exit, RT_NULL, (void *)syscall_frame, RT_NULL);
+    thread_frame->cpsr = ((3 << 6) | 0x4 | 0x1);
+    thread_frame->pc = (long)exit;
+    thread_frame->x0 = 0;
 
-    *thread_sp = thread_frame;
+    *thread_sp = syscall_frame;
 
     return 0;
 }

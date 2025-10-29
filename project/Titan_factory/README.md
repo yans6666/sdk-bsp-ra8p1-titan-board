@@ -10,6 +10,7 @@
 4. MIPI CSI interface OV5640 camera
 5. 800 × 480 RGB LCD screen
 6. 3–6 LED lights
+7. WiFi AP ( ssid: TitanBoard, password: 12345678 )
 
 ## Hardware Connections
 
@@ -79,59 +80,63 @@ After power-on, the six PWM pins on the Raspberry Pi interface output PWM waves.
 
 ![image-20250811094346315](figures/image-20250811094346315.png)
 
-### 4. Buzzer Test
+### 4. Start production test procedure
+
+Start production testing by typing **`factory_test`** in Serial assistant.
+
+### 5. Buzzer Test
 
 The buzzer plays the melody of "Two Tigers" as a functional test.
 
-### 5. HyperRAM Test
+### 6. HyperRAM Test
 
 The HyperRAM test program measures HyperRAM read/write speed.
 
 ![image-20250811151046625](figures/image-20250811151046625.png)
 
-### 6. Wi-Fi Test
+### 7. Wi-Fi Test
 
 The Wi-Fi test program initializes the Wi-Fi module, loads firmware from the SD card, and uses the `ping` command to test connectivity.
 
 ![image-20250811133756446](figures/image-20250811133756446.png)
 
-### 7. Ethernet Test
+### 8. Ethernet Test
 
 The Ethernet test program uses the `ping` command to verify network connectivity.
 
 ![image-20250811134019902](figures/image-20250811134019902.png)
 
-### 8. RTC Test
+### 9. RTC Test
 
 The RTC test outputs the configured date and time in the terminal.
 
 ![image-20250811134041938](figures/image-20250811134041938.png)
 
-### 9. ADC Test
+### 10. ADC Test
 
 The ADC test program sequentially tests channels 0, 1, 2, and 3 of ADC0.
 
 ![image-20250811134118655](figures/image-20250811134118655.png)
 
-### 10. CANFD Test
+### 11. CANFD Test
 
 In the CANFD test program, CANFD0 transmits data, and CANFD1 receives it.
 
 ![image-20250811134147266](figures/image-20250811134147266.png)
 
-### 11. IMU Test
+### 12. IMU Test
 
 The IMU test program verifies correct data reading from the BMI088 module.
 
 ![image-20250811134535211](figures/image-20250811134535211.png)
 
-### 12. Magnetometer Test
+### 13. Magnetometer Test
 
 The magnetometer test program verifies correct data reading from the IST8310 module.
 
 ![image-20250811134600225](figures/image-20250811134600225.png)
 
-### 13. Camera and Screen Test
+### 14. Camera and Screen Test
 
 At the end of the test program, the camera is activated. Wave your hand in front of the camera to trigger capture; the LCD screen will display the captured image.
 

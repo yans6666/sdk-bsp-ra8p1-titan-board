@@ -9,17 +9,8 @@
  */
 
 #include <fal.h>
-#include <rtdevice.h>
 
-#define DBG_TAG "FAL"
-#ifdef FAL_USING_DEBUG
-#define DBG_LVL DBG_LOG
-#else
-#define DBG_LVL DBG_WARNING
-#endif
-#include <rtdbg.h>
-
-static rt_uint8_t init_ok = 0;
+static uint8_t init_ok = 0;
 
 /**
  * FAL (Flash Abstraction Layer) initialization.
@@ -49,12 +40,12 @@ __exit:
     if ((result > 0) && (!init_ok))
     {
         init_ok = 1;
-        LOG_I("RT-Thread Flash Abstraction Layer initialize success.");
+        log_i("RT-Thread Flash Abstraction Layer initialize success.");
     }
     else if(result <= 0)
     {
         init_ok = 0;
-        LOG_E("RT-Thread Flash Abstraction Layer initialize failed.");
+        log_e("RT-Thread Flash Abstraction Layer initialize failed.");
     }
 
     return result;

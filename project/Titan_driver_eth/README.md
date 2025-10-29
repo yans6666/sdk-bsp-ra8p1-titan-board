@@ -192,6 +192,8 @@ ETH1:
 
 ## FSP Configuration
 
+> **Note:**  The FSP version used in this project is 6.2.0, please use FSP 6.2.0 when using the FSP configuration feature.
+
 * Create a `r_mac` stack:
 
 ![image-20250814131414903](figures/image-20250814131414903.png)
