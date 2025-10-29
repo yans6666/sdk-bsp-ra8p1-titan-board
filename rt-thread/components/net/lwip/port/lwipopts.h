@@ -656,12 +656,12 @@
 
 #ifdef RT_LWIP_ENABLE_USER_HOOKS
 /**
- * This hook provides flexibility for handling unknown Ethernet protocols.
- * 
- * For example, you can define how to handle packets of unknown types, 
- * such as forwarding them to another interface, discarding them, 
- * or passing them to an application for further processing.
- */
+ * This hook provides flexibility for handling unknown Ethernet protocols.
+ * 
+ * For example, you can define how to handle packets of unknown types, 
+ * such as forwarding them to another interface, discarding them, 
+ * or passing them to an application for further processing.
+ */
 #define LWIP_HOOK_UNKNOWN_ETH_PROTOCOL lwip_hook_unknown_eth_protocol
 #endif /* RT_LWIP_ENABLE_USER_HOOKS */
 

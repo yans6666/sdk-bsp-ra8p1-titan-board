@@ -5,10 +5,14 @@ menuconfig RT_USING_FAL
     default n
 
 if RT_USING_FAL
-    config FAL_USING_DEBUG
+    config FAL_DEBUG_CONFIG
         bool "Enable debug log output"
-        default y if RT_USING_DEBUG
-        default n
+        default y
+
+    config FAL_DEBUG
+       int
+       default 1    if FAL_DEBUG_CONFIG
+       default 0
 
     config FAL_PART_HAS_TABLE_CFG
         bool "FAL partition table config has defined on 'fal_cfg.h'"

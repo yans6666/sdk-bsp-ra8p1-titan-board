@@ -13,7 +13,6 @@
 
 #include <rtdef.h>
 #include <rtconfig.h>
-#include "completion.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,7 +42,6 @@ struct rt_workqueue
     struct rt_semaphore sem;
     rt_thread_t    work_thread;
     struct rt_spinlock spinlock;
-    struct rt_completion wakeup_completion;
 };
 
 struct rt_work
@@ -54,7 +52,7 @@ struct rt_work
     void *work_data;
     rt_uint16_t flags;
     rt_uint16_t type;
-    rt_tick_t timeout_tick;
+    struct rt_timer timer;
     struct rt_workqueue *workqueue;
 };
 

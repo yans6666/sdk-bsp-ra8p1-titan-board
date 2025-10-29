@@ -32,11 +32,6 @@
 #include <fcntl.h>
 #endif /* DFS_USING_POSIX */
 
-#ifdef RT_USING_POSIX_STDIO
-#include <unistd.h>
-#include <posix/stdio.h>
-#endif /* RT_USING_POSIX_STDIO */
-
 /* finsh thread */
 #ifndef RT_USING_HEAP
     static struct rt_thread finsh_thread;
@@ -159,7 +154,7 @@ int finsh_getchar(void)
 #ifdef RT_USING_DEVICE
     char ch = 0;
 #ifdef RT_USING_POSIX_STDIO
-    if(read(rt_posix_stdio_get_console(), &ch, 1) > 0)
+    if(read(STDIN_FILENO, &ch, 1) > 0)
     {
         return ch;
     }

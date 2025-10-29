@@ -83,7 +83,7 @@ Since the TFTP function requires the support of the file system when transferrin
 ```shell
  \ | /
 - RT -     Thread Operating System
- / | \     5.2.0 build Sep  1 2025 14:02:13
+ / | \     5.1.0 build Sep  1 2025 14:02:13
  2006 - 2024 Copyright by RT-Thread team
 lwIP-2.0.3 initialized!
 [I/sal.skt] Socket Abstraction Layer initialize success.
@@ -263,7 +263,7 @@ After the connection is successful, you can remotely control the development boa
 ```shell
  \ | /
 - RT -     Thread Operating System
- / | \     5.2.0 build Sep  1 2025 14:02:13
+ / | \     5.1.0 build Sep  1 2025 14:02:13
  2006 - 2024 Copyright by RT-Thread team
 msh />
 msh />

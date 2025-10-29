@@ -13,17 +13,9 @@
 #include <rtdevice.h>
 #include <board.h>
 #include "factory_test.h"
-#include "camera_layer.h"
-#include "camera_layer_config.h"
 
 #define LED_PIN     BSP_IO_PORT_00_PIN_12 /* Onboard LED pin */
 #define USER_BTN    BSP_IO_PORT_01_PIN_10 /* User key pin */
-
-#define DISPLAY_SCREEN_WIDTH              (800)
-#define DISPLAY_SCREEN_HEIGHT             (480)
-
-extern struct rt_completion ceu_completion;
-uint8_t display_layer1_buff_select = 0;
 
 void user_callback(void)
 {
@@ -45,9 +37,12 @@ void hal_entry(void)
 
     wifi_connect("TitanBoard", "12345678");
 
-    test_board_entry();
+    while (1)
+    {
+        rt_thread_mdelay(10);
+    }
 
-    //Initialize camera interface
+/*    //Initialize camera interface
     fsp_err_t fsp_status = FSP_SUCCESS;
     fsp_status = camera_init(false);
     if(FSP_SUCCESS != fsp_status)
@@ -56,7 +51,7 @@ void hal_entry(void)
         return;
     }
 
-    camera_image_buffer_initialize ();
+    camera_image_buffer_initialize();
 
     camera_capture_start ();
 
@@ -72,7 +67,7 @@ void hal_entry(void)
         rt_completion_wait(&ceu_completion, RT_WAITING_FOREVER);
 #endif
 
-        /* Draw camera image to display buffer */
+         Draw camera image to display buffer
         uint16_t * p_src  = (uint16_t *)camera_data_ready_buffer_pointer_get();
         uint16_t * p_dest = (uint16_t *)&fb_background[display_layer1_buff_select][0];
         int x_offset = DISPLAY_SCREEN_WIDTH - CAMERA_CAPTURE_IMAGE_WIDTH;
@@ -86,7 +81,7 @@ void hal_entry(void)
         }
 
         rt_thread_mdelay (10);
-    }
+    }*/
 }
 
 void led_entry(void *param)

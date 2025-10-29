@@ -14,12 +14,12 @@ ENV_DIR := /
 config PLATFORM_DIR
     string
     option env="PLATFORM_DIR"
-    default "C:/Softwares/RT-ThreadStudio/workspace/Titan-Board/Titan_driver_wifi_netutils/platform"
+    default "C:/Users/RTT/Desktop/github/sdk-bsp-ra8p1-titan-board/project/Titan_component_netutils/platform"
 
 config RTT_DIR
     string
     option env="RTT_DIR"
-    default "C:/Softwares/RT-ThreadStudio/workspace/Titan-Board/Titan_driver_wifi_netutils/rt-thread"
+    default "C:/Users/RTT/Desktop/github/sdk-bsp-ra8p1-titan-board/project/Titan_component_netutils/rt-thread"
 
 config PKGS_DIR
     string

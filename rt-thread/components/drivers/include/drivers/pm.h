@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2024 RT-Thread Development Team
+ * Copyright (c) 2006-2023, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -10,7 +10,6 @@
  * 2019-04-28     Zero-Free    improve PM mode and device ops interface
  * 2020-11-23     zhangsz      update pm mode select
  * 2020-11-27     zhangsz      update pm 2.0
- * 2024-07-04     wdfk-prog    The device is registered and uninstalled by linked list
  */
 
 #ifndef __PM_H__
@@ -135,16 +134,15 @@ struct rt_pm_ops
 
 struct rt_device_pm_ops
 {
-    rt_err_t (*suspend)(const struct rt_device *device, rt_uint8_t mode);
+    int (*suspend)(const struct rt_device *device, rt_uint8_t mode);
     void (*resume)(const struct rt_device *device, rt_uint8_t mode);
-    rt_err_t (*frequency_change)(const struct rt_device *device, rt_uint8_t mode);
+    int (*frequency_change)(const struct rt_device *device, rt_uint8_t mode);
 };
 
 struct rt_device_pm
 {
     const struct rt_device *device;
     const struct rt_device_pm_ops *ops;
-    rt_slist_t list;
 };
 
 struct rt_pm_module
@@ -174,7 +172,7 @@ struct rt_pm
     rt_uint32_t sleep_status[PM_SLEEP_MODE_MAX - 1][(PM_MODULE_MAX_ID + 31) / 32];
 
     /* the list of device, which has PM feature */
-    rt_slist_t device_list;
+    rt_uint8_t device_pm_number;
     struct rt_device_pm *device_pm;
 
     /* if the mode has timer, the corresponding bit is 1*/
@@ -196,10 +194,10 @@ struct rt_pm_notify
     void *data;
 };
 
-rt_err_t rt_pm_request(rt_uint8_t sleep_mode);
-rt_err_t rt_pm_release(rt_uint8_t sleep_mode);
-rt_err_t rt_pm_release_all(rt_uint8_t sleep_mode);
-rt_err_t rt_pm_run_enter(rt_uint8_t run_mode);
+void rt_pm_request(rt_uint8_t sleep_mode);
+void rt_pm_release(rt_uint8_t sleep_mode);
+void rt_pm_release_all(rt_uint8_t sleep_mode);
+int rt_pm_run_enter(rt_uint8_t run_mode);
 
 void rt_pm_device_register(struct rt_device *device, const struct rt_device_pm_ops *ops);
 void rt_pm_device_unregister(struct rt_device *device);
@@ -210,22 +208,22 @@ void rt_pm_default_set(rt_uint8_t sleep_mode);
 void rt_system_pm_init(const struct rt_pm_ops *ops,
                        rt_uint8_t              timer_mask,
                        void                 *user_data);
-rt_err_t rt_pm_module_request(uint8_t module_id, rt_uint8_t sleep_mode);
-rt_err_t rt_pm_module_release(uint8_t module_id, rt_uint8_t sleep_mode);
-rt_err_t rt_pm_module_release_all(uint8_t module_id, rt_uint8_t sleep_mode);
+void rt_pm_module_request(uint8_t module_id, rt_uint8_t sleep_mode);
+void rt_pm_module_release(uint8_t module_id, rt_uint8_t sleep_mode);
+void rt_pm_module_release_all(uint8_t module_id, rt_uint8_t sleep_mode);
 void rt_pm_module_delay_sleep(rt_uint8_t module_id, rt_tick_t timeout);
 rt_uint32_t rt_pm_module_get_status(void);
 rt_uint8_t rt_pm_get_sleep_mode(void);
 struct rt_pm *rt_pm_get_handle(void);
 
 /* sleep : request or release */
-rt_err_t rt_pm_sleep_request(rt_uint16_t module_id, rt_uint8_t mode);
-rt_err_t rt_pm_sleep_release(rt_uint16_t module_id, rt_uint8_t mode);
-rt_err_t rt_pm_sleep_none_request(rt_uint16_t module_id);
-rt_err_t rt_pm_sleep_none_release(rt_uint16_t module_id);
-rt_err_t rt_pm_sleep_idle_request(rt_uint16_t module_id);
-rt_err_t rt_pm_sleep_idle_release(rt_uint16_t module_id);
-rt_err_t rt_pm_sleep_light_request(rt_uint16_t module_id);
-rt_err_t rt_pm_sleep_light_release(rt_uint16_t module_id);
+void rt_pm_sleep_request(rt_uint16_t module_id, rt_uint8_t mode);
+void rt_pm_sleep_release(rt_uint16_t module_id, rt_uint8_t mode);
+void rt_pm_sleep_none_request(rt_uint16_t module_id);
+void rt_pm_sleep_none_release(rt_uint16_t module_id);
+void rt_pm_sleep_idle_request(rt_uint16_t module_id);
+void rt_pm_sleep_idle_release(rt_uint16_t module_id);
+void rt_pm_sleep_light_request(rt_uint16_t module_id);
+void rt_pm_sleep_light_release(rt_uint16_t module_id);
 
 #endif /* __PM_H__ */

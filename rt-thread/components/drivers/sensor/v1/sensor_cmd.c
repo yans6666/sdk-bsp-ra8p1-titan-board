@@ -83,15 +83,6 @@ static void sensor_show_data(rt_size_t num, rt_sensor_t sensor, struct rt_sensor
     case RT_SENSOR_CLASS_BP:
         LOG_I("num:%3d, bp.sbp:%5d mmHg, bp.dbp:%5d mmHg, timestamp:%5d", num, sensor_data->data.bp.sbp, sensor_data->data.bp.dbp, sensor_data->timestamp);
         break;
-    case RT_SENSOR_CLASS_VOLTAGE:
-        LOG_I("num:%3d, voltage:%5d mV, timestamp:%5d", num, sensor_data->data.mv, sensor_data->timestamp);
-        break;
-    case RT_SENSOR_CLASS_CURRENT:
-        LOG_I("num:%3d, current:%5d mA, timestamp:%5d", num, sensor_data->data.ma, sensor_data->timestamp);
-        break;
-    case RT_SENSOR_CLASS_POWER:
-        LOG_I("num:%3d, power:%5d mW, timestamp:%5d", num, sensor_data->data.mv, sensor_data->timestamp);
-        break;
     default:
         break;
     }
@@ -290,7 +281,7 @@ static void sensor_polling(int argc, char **argv)
     MSH_CMD_EXPORT(sensor_polling, Sensor polling mode test function);
 #endif
 
-static int sensor(int argc, char **argv)
+static void sensor(int argc, char **argv)
 {
     static rt_device_t dev = RT_NULL;
     struct rt_sensor_data data;
@@ -311,7 +302,7 @@ static int sensor(int argc, char **argv)
         rt_kprintf("         sodr <var>            Set output date rate to var\n");
         rt_kprintf("         read [num]            Read [num] times sensor\n");
         rt_kprintf("                               num default 5\n");
-        return -RT_EINVAL;
+        return ;
     }
     else if (!strcmp(argv[1], "info"))
     {
@@ -319,7 +310,7 @@ static int sensor(int argc, char **argv)
         if (dev == RT_NULL)
         {
             LOG_W("Please probe sensor device first!");
-            return -RT_ERROR;
+            return ;
         }
         rt_device_control(dev, RT_SENSOR_CTRL_GET_INFO, &info);
         switch (info.vendor)
@@ -427,15 +418,6 @@ static int sensor(int argc, char **argv)
         case RT_SENSOR_UNIT_MMHG:
             rt_kprintf("unit      :mmHg\n");
             break;
-        case RT_SENSOR_UNIT_MV:
-            rt_kprintf("unit      :mV\n");
-            break;
-        case RT_SENSOR_UNIT_MA:
-            rt_kprintf("unit      :mA\n");
-            break;
-        case RT_SENSOR_UNIT_MW:
-            rt_kprintf("unit      :mW\n");
-            break;
         }
         rt_kprintf("range_max :%d\n", info.range_max);
         rt_kprintf("range_min :%d\n", info.range_min);
@@ -449,7 +431,7 @@ static int sensor(int argc, char **argv)
         if (dev == RT_NULL)
         {
             LOG_W("Please probe sensor device first!");
-            return -RT_ERROR;
+            return ;
         }
         if (argc == 3)
         {
@@ -487,12 +469,12 @@ static int sensor(int argc, char **argv)
             if (dev == RT_NULL)
             {
                 LOG_E("Can't find device:%s", argv[2]);
-                return -RT_ERROR;
+                return;
             }
             if (rt_device_open(dev, RT_DEVICE_FLAG_RDWR) != RT_EOK)
             {
                 LOG_E("open device failed!");
-                return -RT_ERROR;
+                return;
             }
             rt_device_control(dev, RT_SENSOR_CTRL_GET_ID, &reg);
             LOG_I("device id: 0x%x!", reg);
@@ -501,7 +483,7 @@ static int sensor(int argc, char **argv)
         else if (dev == RT_NULL)
         {
             LOG_W("Please probe sensor first!");
-            return -RT_ERROR;
+            return ;
         }
         else if (!strcmp(argv[1], "sr"))
         {
@@ -528,8 +510,6 @@ static int sensor(int argc, char **argv)
     {
         LOG_W("Unknown command, please enter 'sensor' get help information!");
     }
-
-    return RT_EOK;
 }
 #ifdef RT_USING_FINSH
     MSH_CMD_EXPORT(sensor, sensor test function);

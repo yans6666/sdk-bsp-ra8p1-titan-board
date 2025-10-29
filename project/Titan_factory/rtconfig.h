@@ -5,65 +5,6 @@
 
 /* RT-Thread Kernel */
 
-/* klibc options */
-
-/* rt_vsnprintf options */
-
-#define RT_KLIBC_USING_LIBC_VSNPRINTF
-/* end of rt_vsnprintf options */
-
-/* rt_vsscanf options */
-
-/* end of rt_vsscanf options */
-
-/* rt_memset options */
-
-/* end of rt_memset options */
-
-/* rt_memcpy options */
-
-/* end of rt_memcpy options */
-
-/* rt_memmove options */
-
-/* end of rt_memmove options */
-
-/* rt_memcmp options */
-
-/* end of rt_memcmp options */
-
-/* rt_strstr options */
-
-/* end of rt_strstr options */
-
-/* rt_strcasecmp options */
-
-/* end of rt_strcasecmp options */
-
-/* rt_strncpy options */
-
-/* end of rt_strncpy options */
-
-/* rt_strcpy options */
-
-/* end of rt_strcpy options */
-
-/* rt_strncmp options */
-
-/* end of rt_strncmp options */
-
-/* rt_strcmp options */
-
-/* end of rt_strcmp options */
-
-/* rt_strlen options */
-
-/* end of rt_strlen options */
-
-/* rt_strnlen options */
-
-/* end of rt_strnlen options */
-/* end of klibc options */
 #define RT_NAME_MAX 12
 #define RT_CPUS_NR 1
 #define RT_ALIGN_SIZE 8
@@ -80,11 +21,11 @@
 #define RT_TIMER_THREAD_PRIO 4
 #define RT_TIMER_THREAD_STACK_SIZE 512
 
-/* kservice options */
+/* kservice optimization */
 
-/* end of kservice options */
+#define RT_KSERVICE_USING_STDLIB
+/* end of kservice optimization */
 #define RT_USING_DEBUG
-#define RT_DEBUGING_ASSERT
 #define RT_DEBUGING_COLOR
 #define RT_DEBUGING_CONTEXT
 
@@ -110,7 +51,7 @@
 #define RT_USING_CONSOLE
 #define RT_CONSOLEBUF_SIZE 128
 #define RT_CONSOLE_DEVICE_NAME "uart8"
-#define RT_VER_NUM 0x50200
+#define RT_VER_NUM 0x50100
 #define RT_BACKTRACE_LEVEL_MAX_NR 32
 /* end of RT-Thread Kernel */
 #define RT_USING_HW_ATOMIC
@@ -169,7 +110,8 @@
 #define RT_USING_DFS_ROMFS
 /* end of DFS: device virtual file system */
 #define RT_USING_FAL
-#define FAL_USING_DEBUG
+#define FAL_DEBUG_CONFIG
+#define FAL_DEBUG 1
 #define FAL_PART_HAS_TABLE_CFG
 
 /* Device Drivers */
@@ -225,15 +167,12 @@
 #define RT_WLAN_WORKQUEUE_THREAD_NAME "wlan"
 #define RT_WLAN_WORKQUEUE_THREAD_SIZE 2048
 #define RT_WLAN_WORKQUEUE_THREAD_PRIO 15
-#define RT_USING_BLK
-
-/* Partition Types */
-
-#define RT_BLK_PARTITION_DFS
-#define RT_BLK_PARTITION_EFI
-/* end of Partition Types */
 #define RT_USING_PIN
 #define RT_USING_HWTIMER
+
+/* Using USB */
+
+/* end of Using USB */
 /* end of Device Drivers */
 
 /* C/C++ and POSIX layer */
@@ -333,11 +272,11 @@
 /* Utilities */
 
 /* end of Utilities */
-
-/* Using USB legacy version */
-
-/* end of Using USB legacy version */
 /* end of RT-Thread Components */
+
+/* RT-Thread Utestcases */
+
+/* end of RT-Thread Utestcases */
 
 /* RT-Thread online packages */
 
@@ -425,6 +364,16 @@
 
 /* enhanced kernel services */
 
+#define PKG_USING_RT_VSNPRINTF_FULL
+#define PKG_VSNPRINTF_SUPPORT_DECIMAL_SPECIFIERS
+#define PKG_VSNPRINTF_SUPPORT_LONG_LONG
+#define PKG_VSNPRINTF_CHECK_FOR_NUL_IN_FORMAT_SPECIFIER
+#define PKG_VSNPRINTF_INTEGER_BUFFER_SIZE 32
+#define PKG_VSNPRINTF_DECIMAL_BUFFER_SIZE 32
+#define PKG_VSNPRINTF_DEFAULT_FLOAT_PRECISION 6
+#define PKG_VSNPRINTF_MAX_INTEGRAL_DIGITS_FOR_DECIMAL 9
+#define PKG_VSNPRINTF_LOG10_TAYLOR_TERMS 4
+#define PKG_USING_RT_VSNPRINTF_FULL_LATEST_VERSION
 /* end of enhanced kernel services */
 
 /* acceleration: Assembly language or algorithmic acceleration packages */
@@ -489,6 +438,10 @@
 /* GD32 Drivers */
 
 /* end of GD32 Drivers */
+
+/* HPMicro SDK */
+
+/* end of HPMicro SDK */
 /* end of HAL & SDK Drivers */
 
 /* sensors drivers */

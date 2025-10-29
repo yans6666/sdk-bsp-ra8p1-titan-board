@@ -6,13 +6,13 @@
  * Change Logs:
  * Date           Author       Notes
  */
-#ifndef __EN28J60_H_INCLUDED__
-#define __EN28J60_H_INCLUDED__
+#ifndef EN28J60_H_INCLUDED
+#define EN28J60_H_INCLUDED
 
 #include <stdint.h>
 
 #include <rtthread.h>
-#include "drivers/dev_spi.h"
+#include <drivers/spi.h>
 #include <netif/ethernetif.h>
 
 // ENC28J60 Control Registers
@@ -340,4 +340,4 @@ struct net_device
 extern rt_err_t enc28j60_attach(const char *spi_device_name);
 extern void enc28j60_isr(void);
 
-#endif // __EN28J60_H_INCLUDED__
+#endif // EN28J60_H_INCLUDED

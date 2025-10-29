@@ -83,7 +83,7 @@ netutils 		// netutils 文 件 夹
 ```shell
  \ | /
 - RT -     Thread Operating System
- / | \     5.2.0 build Sep  1 2025 14:02:13
+ / | \     5.1.0 build Sep  1 2025 14:02:13
  2006 - 2024 Copyright by RT-Thread team
 lwIP-2.0.3 initialized!
 [I/sal.skt] Socket Abstraction Layer initialize success.
@@ -264,7 +264,7 @@ msh />telnet: waiting for connection
 ```shell
  \ | /
 - RT -     Thread Operating System
- / | \     5.2.0 build Sep  1 2025 14:02:13
+ / | \     5.1.0 build Sep  1 2025 14:02:13
  2006 - 2024 Copyright by RT-Thread team
 msh />
 msh />

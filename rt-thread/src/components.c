@@ -90,7 +90,7 @@ void rt_components_board_init(void)
     const struct rt_init_desc *desc;
     for (desc = &__rt_init_desc_rti_board_start; desc < &__rt_init_desc_rti_board_end; desc ++)
     {
-        rt_kprintf("initialize %s\n", desc->fn_name);
+        rt_kprintf("initialize %s", desc->fn_name);
         result = desc->fn();
         rt_kprintf(":%d done\n", result);
     }
@@ -116,7 +116,7 @@ void rt_components_init(void)
     rt_kprintf("do components initialization.\n");
     for (desc = &__rt_init_desc_rti_board_end; desc < &__rt_init_desc_rti_end; desc ++)
     {
-        rt_kprintf("initialize %s\n", desc->fn_name);
+        rt_kprintf("initialize %s", desc->fn_name);
         result = desc->fn();
         rt_kprintf(":%d done\n", result);
     }
@@ -235,16 +235,16 @@ void rt_application_init(void)
  *
  * @return Normally never returns. If 0 is returned, the scheduler failed.
  */
+#include <hal_data.h>
+
 int rtthread_startup(void)
 {
 #ifdef RT_USING_SMP
     rt_hw_spin_lock_init(&_cpus_lock);
 #endif
+    
     rt_hw_local_irq_disable();
 
-    /* board level initialization
-     * NOTE: please initialize heap inside board initialization.
-     */
     rt_hw_board_init();
 
     /* show RT-Thread version */
@@ -269,9 +269,6 @@ int rtthread_startup(void)
 
     /* idle thread initialization */
     rt_thread_idle_init();
-
-    /* defunct thread initialization */
-    rt_thread_defunct_init();
 
 #ifdef RT_USING_SMP
     rt_hw_spin_lock(&_cpus_lock);

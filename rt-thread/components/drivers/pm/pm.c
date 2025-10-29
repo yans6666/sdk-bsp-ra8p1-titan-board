@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2024 RT-Thread Development Team
+ * Copyright (c) 2006-2023, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -10,7 +10,6 @@
  * 2019-04-28     Zero-Free    improve PM mode and device ops interface
  * 2020-11-23     zhangsz      update pm mode select
  * 2020-11-27     zhangsz      update pm 2.0
- * 2024-07-04     wdfk-prog    The device is registered and uninstalled by linked list
  */
 
 #include <rthw.h>
@@ -78,6 +77,9 @@ rt_weak void rt_pm_exit_critical(rt_uint32_t ctx, rt_uint8_t sleep_mode)
 /* lptimer start */
 static void pm_lptimer_start(struct rt_pm *pm, uint32_t timeout)
 {
+    if (_pm.ops == RT_NULL)
+        return;
+
     if (_pm.ops->timer_start != RT_NULL)
         _pm.ops->timer_start(pm, timeout);
 }
@@ -85,6 +87,9 @@ static void pm_lptimer_start(struct rt_pm *pm, uint32_t timeout)
 /* lptimer stop */
 static void pm_lptimer_stop(struct rt_pm *pm)
 {
+    if (_pm.ops == RT_NULL)
+        return;
+
     if (_pm.ops->timer_stop != RT_NULL)
         _pm.ops->timer_stop(pm);
 }
@@ -92,6 +97,9 @@ static void pm_lptimer_stop(struct rt_pm *pm)
 /* lptimer get timeout tick */
 static rt_tick_t pm_lptimer_get_timeout(struct rt_pm *pm)
 {
+    if (_pm.ops == RT_NULL)
+        return RT_TICK_MAX;
+
     if (_pm.ops->timer_get_tick != RT_NULL)
         return _pm.ops->timer_get_tick(pm);
 
@@ -101,6 +109,9 @@ static rt_tick_t pm_lptimer_get_timeout(struct rt_pm *pm)
 /* enter sleep mode */
 static void pm_sleep(struct rt_pm *pm, uint8_t sleep_mode)
 {
+    if (_pm.ops == RT_NULL)
+        return;
+
     if (_pm.ops->sleep != RT_NULL)
         _pm.ops->sleep(pm, sleep_mode);
 }
@@ -108,22 +119,17 @@ static void pm_sleep(struct rt_pm *pm, uint8_t sleep_mode)
 /**
  * This function will suspend all registered devices
  */
-static rt_err_t _pm_device_suspend(rt_uint8_t mode)
+static int _pm_device_suspend(rt_uint8_t mode)
 {
-    rt_err_t ret = RT_EOK;
-    struct rt_device_pm *device_pm = RT_NULL;
-    rt_slist_t *node = RT_NULL;
+    int index, ret = RT_EOK;
 
-    for (node = rt_slist_first(&_pm.device_list); node; node = rt_slist_next(node))
+    for (index = 0; index < _pm.device_pm_number; index++)
     {
-        device_pm = rt_slist_entry(node, struct rt_device_pm, list);
-        if (device_pm->ops != RT_NULL && device_pm->ops->suspend != RT_NULL)
+        if (_pm.device_pm[index].ops->suspend != RT_NULL)
         {
-            ret = device_pm->ops->suspend(device_pm->device, mode);
+            ret = _pm.device_pm[index].ops->suspend(_pm.device_pm[index].device, mode);
             if(ret != RT_EOK)
-            {
                 break;
-            }
         }
     }
 
@@ -135,15 +141,13 @@ static rt_err_t _pm_device_suspend(rt_uint8_t mode)
  */
 static void _pm_device_resume(rt_uint8_t mode)
 {
-    struct rt_device_pm *device_pm = RT_NULL;
-    rt_slist_t *node = RT_NULL;
+    int index;
 
-    for (node = rt_slist_first(&_pm.device_list); node; node = rt_slist_next(node))
+    for (index = 0; index < _pm.device_pm_number; index++)
     {
-        device_pm = rt_slist_entry(node, struct rt_device_pm, list);
-        if (device_pm->ops != RT_NULL && device_pm->ops->resume != RT_NULL)
+        if (_pm.device_pm[index].ops->resume != RT_NULL)
         {
-            device_pm->ops->resume(device_pm->device, mode);
+            _pm.device_pm[index].ops->resume(_pm.device_pm[index].device, mode);
         }
     }
 }
@@ -153,16 +157,13 @@ static void _pm_device_resume(rt_uint8_t mode)
  */
 static void _pm_device_frequency_change(rt_uint8_t mode)
 {
-    struct rt_device_pm *device_pm = RT_NULL;
-    rt_slist_t *node = RT_NULL;
+    rt_uint32_t index;
 
-    for (node = rt_slist_first(&_pm.device_list); node; node = rt_slist_next(node))
+    /* make the frequency change */
+    for (index = 0; index < _pm.device_pm_number; index ++)
     {
-        device_pm = rt_slist_entry(node, struct rt_device_pm, list);
-        if (device_pm->ops->frequency_change != RT_NULL)
-        {
-            device_pm->ops->frequency_change(device_pm->device, mode);
-        }
+        if (_pm.device_pm[index].ops->frequency_change != RT_NULL)
+            _pm.device_pm[index].ops->frequency_change(_pm.device_pm[index].device, mode);
     }
 }
 
@@ -171,16 +172,13 @@ static void _pm_device_frequency_change(rt_uint8_t mode)
  */
 static void _pm_frequency_scaling(struct rt_pm *pm)
 {
-    rt_base_t level = 0;
+    rt_base_t level;
 
     if (pm->flags & RT_PM_FREQUENCY_PENDING)
     {
         level = rt_hw_interrupt_disable();
         /* change system runing mode */
-        if(pm->ops->run != RT_NULL)
-        {
-            pm->ops->run(pm, pm->run_mode);
-        }
+        pm->ops->run(pm, pm->run_mode);
         /* changer device frequency */
         _pm_device_frequency_change(pm->run_mode);
         pm->flags &= ~RT_PM_FREQUENCY_PENDING;
@@ -290,12 +288,6 @@ static rt_bool_t _pm_device_check_idle(void)
     return RT_TRUE;
 }
 
-/**
- * @brief  Get the next system wake-up time
- * @note   When used by default, it goes into STANDBY mode and sleeps forever. tickless external rewriting is required
- * @param  mode: sleep mode
- * @retval timeout_tick
- */
 rt_weak rt_tick_t pm_timer_next_timeout_tick(rt_uint8_t mode)
 {
     switch (mode)
@@ -352,7 +344,6 @@ rt_weak rt_uint8_t pm_get_sleep_threshold_mode(rt_uint8_t cur_mode, rt_tick_t ti
         else if (timeout_tick < PM_STANDBY_THRESHOLD_TIME)
             sleep_mode = PM_SLEEP_MODE_DEEP;
     }
-    cur_mode = sleep_mode;
 #else
     if (timeout_tick < PM_TICKLESS_THRESHOLD_TIME)
     {
@@ -368,8 +359,8 @@ rt_weak rt_uint8_t pm_get_sleep_threshold_mode(rt_uint8_t cur_mode, rt_tick_t ti
  */
 static void _pm_change_sleep_mode(struct rt_pm *pm)
 {
-    rt_tick_t timeout_tick = 0, delta_tick = 0;
-    rt_base_t level = 0;
+    rt_tick_t timeout_tick, delta_tick;
+    rt_base_t level;
     uint8_t sleep_mode = PM_SLEEP_MODE_DEEP;
 
     level = rt_pm_enter_critical(pm->sleep_mode);
@@ -389,27 +380,23 @@ static void _pm_change_sleep_mode(struct rt_pm *pm)
 
     if (_pm.sleep_mode == PM_SLEEP_MODE_NONE)
     {
-        pm_sleep(pm, PM_SLEEP_MODE_NONE);
+        pm->ops->sleep(pm, PM_SLEEP_MODE_NONE);
         rt_pm_exit_critical(level, pm->sleep_mode);
     }
     else
     {
         /* Notify app will enter sleep mode */
         if (_pm_notify.notify)
-        {
             _pm_notify.notify(RT_PM_ENTER_SLEEP, pm->sleep_mode, _pm_notify.data);
-        }
 
         /* Suspend all peripheral device */
 #ifdef PM_ENABLE_SUSPEND_SLEEP_MODE
-        rt_err_t ret = _pm_device_suspend(pm->sleep_mode);
+        int ret = _pm_device_suspend(pm->sleep_mode);
         if (ret != RT_EOK)
         {
             _pm_device_resume(pm->sleep_mode);
             if (_pm_notify.notify)
-            {
                 _pm_notify.notify(RT_PM_EXIT_SLEEP, pm->sleep_mode, _pm_notify.data);
-            }
             if (pm->sleep_mode > PM_SUSPEND_SLEEP_MODE)
             {
                 pm->sleep_mode = PM_SUSPEND_SLEEP_MODE;
@@ -432,7 +419,14 @@ static void _pm_change_sleep_mode(struct rt_pm *pm)
 
             if (pm->timer_mask & (0x01 << pm->sleep_mode))
             {
-                pm_lptimer_start(pm, timeout_tick);
+                if (timeout_tick == RT_TICK_MAX)
+                {
+                    pm_lptimer_start(pm, RT_TICK_MAX);
+                }
+                else
+                {
+                    pm_lptimer_start(pm, timeout_tick);
+                }
             }
         }
 
@@ -446,9 +440,7 @@ static void _pm_change_sleep_mode(struct rt_pm *pm)
             pm_lptimer_stop(pm);
             if (delta_tick)
             {
-                rt_interrupt_enter();
-                rt_tick_increase_tick(delta_tick);
-                rt_interrupt_leave();
+                rt_tick_set(rt_tick_get() + delta_tick);
             }
         }
 
@@ -459,6 +451,14 @@ static void _pm_change_sleep_mode(struct rt_pm *pm)
             _pm_notify.notify(RT_PM_EXIT_SLEEP, pm->sleep_mode, _pm_notify.data);
 
         rt_pm_exit_critical(level, pm->sleep_mode);
+
+        if (pm->timer_mask & (0x01 << pm->sleep_mode))
+        {
+            if (delta_tick)
+            {
+                rt_timer_check();
+            }
+        }
     }
 }
 
@@ -467,10 +467,8 @@ static void _pm_change_sleep_mode(struct rt_pm *pm)
  */
 void rt_system_power_manager(void)
 {
-    if (_pm_init_flag == 0 || _pm.ops == RT_NULL)
-    {
+    if (_pm_init_flag == 0)
         return;
-    }
 
     /* CPU frequency scaling according to the runing mode settings */
     _pm_frequency_scaling(&_pm);
@@ -485,28 +483,22 @@ void rt_system_power_manager(void)
  *
  * @param parameter the parameter of run mode or sleep mode
  */
-rt_err_t rt_pm_request(rt_uint8_t mode)
+void rt_pm_request(rt_uint8_t mode)
 {
     rt_base_t level;
     struct rt_pm *pm;
 
     if (_pm_init_flag == 0)
-    {
-        return -RT_EPERM;
-    }
+        return;
 
     if (mode > (PM_SLEEP_MODE_MAX - 1))
-    {
-        return -RT_EINVAL;
-    }
+        return;
 
     level = rt_hw_interrupt_disable();
     pm = &_pm;
     if (pm->modes[mode] < 255)
         pm->modes[mode] ++;
     rt_hw_interrupt_enable(level);
-
-    return RT_EOK;
 }
 
 /**
@@ -516,28 +508,22 @@ rt_err_t rt_pm_request(rt_uint8_t mode)
  * @param parameter the parameter of run mode or sleep mode
  *
  */
-rt_err_t rt_pm_release(rt_uint8_t mode)
+void rt_pm_release(rt_uint8_t mode)
 {
     rt_base_t level;
     struct rt_pm *pm;
 
     if (_pm_init_flag == 0)
-    {
-        return -RT_EPERM;
-    }
+        return;
 
     if (mode > (PM_SLEEP_MODE_MAX - 1))
-    {
-        return -RT_EINVAL;
-    }
+        return;
 
     level = rt_hw_interrupt_disable();
     pm = &_pm;
     if (pm->modes[mode] > 0)
         pm->modes[mode] --;
     rt_hw_interrupt_enable(level);
-
-    return RT_EOK;
 }
 
 /**
@@ -547,27 +533,21 @@ rt_err_t rt_pm_release(rt_uint8_t mode)
  * @param parameter the parameter of run mode or sleep mode
  *
  */
-rt_err_t rt_pm_release_all(rt_uint8_t mode)
+void rt_pm_release_all(rt_uint8_t mode)
 {
     rt_base_t level;
     struct rt_pm *pm;
 
     if (_pm_init_flag == 0)
-    {
-        return -RT_EPERM;
-    }
+        return;
 
     if (mode > (PM_SLEEP_MODE_MAX - 1))
-    {
-        return -RT_EINVAL;
-    }
+        return;
 
     level = rt_hw_interrupt_disable();
     pm = &_pm;
     pm->modes[mode] = 0;
     rt_hw_interrupt_enable(level);
-
-    return RT_EOK;
 }
 
 /**
@@ -577,25 +557,19 @@ rt_err_t rt_pm_release_all(rt_uint8_t mode)
  * @param module_id the application or device module id
  * @param mode the system power sleep mode
  */
-rt_err_t rt_pm_module_request(uint8_t module_id, rt_uint8_t mode)
+void rt_pm_module_request(uint8_t module_id, rt_uint8_t mode)
 {
     rt_base_t level;
     struct rt_pm *pm;
 
     if (_pm_init_flag == 0)
-    {
-        return -RT_EPERM;
-    }
+        return;
 
     if (mode > (PM_SLEEP_MODE_MAX - 1))
-    {
-        return -RT_EINVAL;
-    }
+        return;
 
     if (module_id > (PM_MODULE_MAX_ID - 1))
-    {
-        return -RT_EINVAL;
-    }
+        return;
 
     level = rt_hw_interrupt_disable();
     pm = &_pm;
@@ -603,8 +577,6 @@ rt_err_t rt_pm_module_request(uint8_t module_id, rt_uint8_t mode)
     if (pm->modes[mode] < 255)
         pm->modes[mode] ++;
     rt_hw_interrupt_enable(level);
-
-    return RT_EOK;
 }
 
 /**
@@ -615,25 +587,19 @@ rt_err_t rt_pm_module_request(uint8_t module_id, rt_uint8_t mode)
  * @param mode the system power sleep mode
  *
  */
-rt_err_t rt_pm_module_release(uint8_t module_id, rt_uint8_t mode)
+void rt_pm_module_release(uint8_t module_id, rt_uint8_t mode)
 {
     rt_base_t level;
     struct rt_pm *pm;
 
     if (_pm_init_flag == 0)
-    {
-        return -RT_EPERM;
-    }
+        return;
 
     if (mode > (PM_SLEEP_MODE_MAX - 1))
-    {
-        return -RT_EINVAL;
-    }
+        return;
 
     if (module_id > (PM_MODULE_MAX_ID - 1))
-    {
-        return -RT_EINVAL;
-    }
+        return;
 
     level = rt_hw_interrupt_disable();
     pm = &_pm;
@@ -642,8 +608,6 @@ rt_err_t rt_pm_module_release(uint8_t module_id, rt_uint8_t mode)
     if (pm->modes[mode] == 0)
         pm->module_status[module_id].req_status = 0x00;
     rt_hw_interrupt_enable(level);
-
-    return RT_EOK;
 }
 
 /**
@@ -654,28 +618,22 @@ rt_err_t rt_pm_module_release(uint8_t module_id, rt_uint8_t mode)
  * @param mode the system power sleep mode
  *
  */
-rt_err_t rt_pm_module_release_all(uint8_t module_id, rt_uint8_t mode)
+void rt_pm_module_release_all(uint8_t module_id, rt_uint8_t mode)
 {
     rt_base_t level;
     struct rt_pm *pm;
 
     if (_pm_init_flag == 0)
-    {
-        return -RT_EPERM;
-    }
+        return;
 
     if (mode > (PM_SLEEP_MODE_MAX - 1))
-    {
-        return -RT_EINVAL;
-    }
+        return;
 
     level = rt_hw_interrupt_disable();
     pm = &_pm;
     pm->modes[mode] = 0;
     pm->module_status[module_id].req_status = 0x00;
     rt_hw_interrupt_enable(level);
-
-    return RT_EOK;
 }
 
 /**
@@ -686,24 +644,23 @@ rt_err_t rt_pm_module_release_all(uint8_t module_id, rt_uint8_t mode)
  *
  * @return none
  */
-rt_err_t rt_pm_sleep_request(rt_uint16_t module_id, rt_uint8_t mode)
+void rt_pm_sleep_request(rt_uint16_t module_id, rt_uint8_t mode)
 {
     rt_base_t level;
 
     if (module_id >= PM_MODULE_MAX_ID)
     {
-        return -RT_EINVAL;
+        return;
     }
 
     if (mode >= (PM_SLEEP_MODE_MAX - 1))
     {
-        return -RT_EINVAL;
+        return;
     }
 
     level = rt_hw_interrupt_disable();
     _pm.sleep_status[mode][module_id / 32] |= 1 << (module_id % 32);
     rt_hw_interrupt_enable(level);
-    return RT_EOK;
 }
 
 /**
@@ -713,9 +670,9 @@ rt_err_t rt_pm_sleep_request(rt_uint16_t module_id, rt_uint8_t mode)
  *
  * @return NULL
  */
-rt_err_t rt_pm_sleep_none_request(rt_uint16_t module_id)
+void rt_pm_sleep_none_request(rt_uint16_t module_id)
 {
-    return rt_pm_sleep_request(module_id, PM_SLEEP_MODE_NONE);
+    rt_pm_sleep_request(module_id, PM_SLEEP_MODE_NONE);
 }
 
 /**
@@ -725,9 +682,9 @@ rt_err_t rt_pm_sleep_none_request(rt_uint16_t module_id)
  *
  * @return NULL
  */
-rt_err_t rt_pm_sleep_idle_request(rt_uint16_t module_id)
+void rt_pm_sleep_idle_request(rt_uint16_t module_id)
 {
-    return rt_pm_sleep_request(module_id, PM_SLEEP_MODE_IDLE);
+    rt_pm_sleep_request(module_id, PM_SLEEP_MODE_IDLE);
 }
 
 /**
@@ -737,9 +694,9 @@ rt_err_t rt_pm_sleep_idle_request(rt_uint16_t module_id)
  *
  * @return NULL
  */
-rt_err_t rt_pm_sleep_light_request(rt_uint16_t module_id)
+void rt_pm_sleep_light_request(rt_uint16_t module_id)
 {
-    return rt_pm_sleep_request(module_id, PM_SLEEP_MODE_LIGHT);
+    rt_pm_sleep_request(module_id, PM_SLEEP_MODE_LIGHT);
 }
 
 /**
@@ -750,24 +707,23 @@ rt_err_t rt_pm_sleep_light_request(rt_uint16_t module_id)
  *
  * @return NULL
  */
-rt_err_t rt_pm_sleep_release(rt_uint16_t module_id, rt_uint8_t mode)
+void rt_pm_sleep_release(rt_uint16_t module_id, rt_uint8_t mode)
 {
     rt_base_t level;
 
     if (module_id >= PM_MODULE_MAX_ID)
     {
-        return -RT_EINVAL;
+        return;
     }
 
     if (mode >= (PM_SLEEP_MODE_MAX - 1))
     {
-        return -RT_EINVAL;
+        return;
     }
 
     level = rt_hw_interrupt_disable();
     _pm.sleep_status[mode][module_id / 32] &= ~(1 << (module_id % 32));
     rt_hw_interrupt_enable(level);
-    return RT_EOK;
 }
 
 /**
@@ -777,9 +733,9 @@ rt_err_t rt_pm_sleep_release(rt_uint16_t module_id, rt_uint8_t mode)
  *
  * @return none
  */
-rt_err_t rt_pm_sleep_none_release(rt_uint16_t module_id)
+void rt_pm_sleep_none_release(rt_uint16_t module_id)
 {
-    return rt_pm_sleep_release(module_id, PM_SLEEP_MODE_NONE);
+    rt_pm_sleep_release(module_id, PM_SLEEP_MODE_NONE);
 }
 
 /**
@@ -789,9 +745,9 @@ rt_err_t rt_pm_sleep_none_release(rt_uint16_t module_id)
  *
  * @return none
  */
-rt_err_t rt_pm_sleep_idle_release(rt_uint16_t module_id)
+void rt_pm_sleep_idle_release(rt_uint16_t module_id)
 {
-    return rt_pm_sleep_release(module_id, PM_SLEEP_MODE_IDLE);
+    rt_pm_sleep_release(module_id, PM_SLEEP_MODE_IDLE);
 }
 
 /**
@@ -801,9 +757,9 @@ rt_err_t rt_pm_sleep_idle_release(rt_uint16_t module_id)
  *
  * @return none
  */
-rt_err_t rt_pm_sleep_light_release(rt_uint16_t module_id)
+void rt_pm_sleep_light_release(rt_uint16_t module_id)
 {
-    return rt_pm_sleep_release(module_id, PM_SLEEP_MODE_LIGHT);
+    rt_pm_sleep_release(module_id, PM_SLEEP_MODE_LIGHT);
 }
 
 /**
@@ -814,15 +770,24 @@ rt_err_t rt_pm_sleep_light_release(rt_uint16_t module_id)
  */
 void rt_pm_device_register(struct rt_device *device, const struct rt_device_pm_ops *ops)
 {
+    rt_base_t level;
     struct rt_device_pm *device_pm;
 
-    device_pm = RT_KERNEL_MALLOC(sizeof(struct rt_device_pm));
+    RT_DEBUG_NOT_IN_INTERRUPT;
+
+    level = rt_hw_interrupt_disable();
+
+    device_pm = (struct rt_device_pm *)RT_KERNEL_REALLOC(_pm.device_pm,
+                (_pm.device_pm_number + 1) * sizeof(struct rt_device_pm));
     if (device_pm != RT_NULL)
     {
-        rt_slist_append(&_pm.device_list, &device_pm->list);
-        device_pm->device = device;
-        device_pm->ops    = ops;
+        _pm.device_pm = device_pm;
+        _pm.device_pm[_pm.device_pm_number].device = device;
+        _pm.device_pm[_pm.device_pm_number].ops    = ops;
+        _pm.device_pm_number += 1;
     }
+
+    rt_hw_interrupt_enable(level);
 }
 
 /**
@@ -832,18 +797,32 @@ void rt_pm_device_register(struct rt_device *device, const struct rt_device_pm_o
  */
 void rt_pm_device_unregister(struct rt_device *device)
 {
-    struct rt_device_pm *device_pm = RT_NULL;
-    rt_slist_t *node = RT_NULL;
-    for (node = rt_slist_first(&_pm.device_list); node; node = rt_slist_next(node))
+    rt_base_t level;
+    rt_uint32_t index;
+    RT_DEBUG_NOT_IN_INTERRUPT;
+
+    level = rt_hw_interrupt_disable();
+
+    for (index = 0; index < _pm.device_pm_number; index ++)
     {
-        device_pm = rt_slist_entry(node, struct rt_device_pm, list);
-        if (device_pm->device == device)
+        if (_pm.device_pm[index].device == device)
         {
-            rt_slist_remove(&_pm.device_list, &device_pm->list);
-            RT_KERNEL_FREE(device_pm);
+            /* remove current entry */
+            for (; index < _pm.device_pm_number - 1; index ++)
+            {
+                _pm.device_pm[index] = _pm.device_pm[index + 1];
+            }
+
+            _pm.device_pm[_pm.device_pm_number - 1].device = RT_NULL;
+            _pm.device_pm[_pm.device_pm_number - 1].ops = RT_NULL;
+
+            _pm.device_pm_number -= 1;
+            /* break out and not touch memory */
             break;
         }
     }
+
+    rt_hw_interrupt_enable(level);
 }
 
 /**
@@ -935,11 +914,10 @@ static rt_err_t _rt_pm_device_control(rt_device_t dev,
     return RT_EOK;
 }
 
-rt_err_t rt_pm_run_enter(rt_uint8_t mode)
+int rt_pm_run_enter(rt_uint8_t mode)
 {
-    rt_base_t level = 0;
-    struct rt_pm *pm = RT_NULL;
-    rt_err_t ret = RT_EOK;
+    rt_base_t level;
+    struct rt_pm *pm;
 
     if (_pm_init_flag == 0)
         return -RT_EIO;
@@ -947,16 +925,12 @@ rt_err_t rt_pm_run_enter(rt_uint8_t mode)
     if (mode > PM_RUN_MODE_MAX)
         return -RT_EINVAL;
 
-    pm = &_pm;
-
     level = rt_hw_interrupt_disable();
+    pm = &_pm;
     if (mode < pm->run_mode)
     {
         /* change system runing mode */
-        if(pm->ops != RT_NULL && pm->ops->run != RT_NULL)
-        {
-            pm->ops->run(pm, mode);
-        }
+        pm->ops->run(pm, mode);
         /* changer device frequency */
         _pm_device_frequency_change(mode);
     }
@@ -967,7 +941,7 @@ rt_err_t rt_pm_run_enter(rt_uint8_t mode)
     pm->run_mode = mode;
     rt_hw_interrupt_enable(level);
 
-    return ret;
+    return RT_EOK;
 }
 
 #ifdef RT_USING_DEVICE_OPS
@@ -1030,8 +1004,7 @@ void rt_system_pm_init(const struct rt_pm_ops *ops,
     pm->ops = ops;
 
     pm->device_pm = RT_NULL;
-
-    rt_slist_init(&pm->device_list);
+    pm->device_pm_number = 0;
 
 #if IDLE_THREAD_STACK_SIZE <= 256
     #error "[pm.c ERR] IDLE Stack Size Too Small!"
