@@ -102,6 +102,52 @@ The ADC16H has the following features:
 - **Signal Processing**: Audio acquisition, vibration monitoring  
 - **Data Logging**: Multi-channel high-speed sampling for storage or transmission to a host
 
+## RT-Thread ADC Driver Framework
+
+**The RT-Thread ADC (Analog to Digital Converter) framework** is a unified interface provided by the RT-Thread device driver layer to manage ADC hardware modules across various MCUs. This framework abstracts the underlying ADC hardware into a standardized device interface, allowing applications to obtain digital values from analog signals through a uniform API and achieve cross-platform ADC functionality.
+
+### 1. Device Model
+
+In RT-Thread, ADCs are managed as **device objects** (subclass of `struct rt_device`, type `RT_Device_Class_ADC`). Developers do not need to manipulate hardware registers directly. All channel enabling, sampling, and disabling operations can be done via standard RT-Thread device interfaces.
+
+### 2. Operation Interfaces
+
+Applications access ADC devices through RT-Thread’s I/O device management interfaces. Key APIs include:
+
+- Find ADC device
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- Enable ADC channel
+
+```c
+rt_err_t rt_adc_enable(rt_adc_device_t dev, rt_uint32_t channel);
+```
+
+- Read ADC channel value
+
+```c
+rt_uint32_t rt_adc_read(rt_adc_device_t dev, rt_uint32_t channel);
+```
+
+- Disable ADC channel
+
+```c
+rt_err_t rt_adc_disable(rt_adc_device_t dev, rt_uint32_t channel);
+```
+
+### 3. Framework Features
+
+- **Unified Interface**: All ADC hardware modules are accessed through the same interface, simplifying application development.
+- **Cross-Platform Support**: Applications can be ported across different MCU platforms without modifying ADC code.
+- **Flexible Channel Control**: Supports independent enable/disable for multiple channels.
+- **High Extensibility**: Can be combined with DMA, timers, and other modules for high-speed data acquisition.
+- **Accurate Sampling**: Supports multiple resolutions and different reference voltage configurations.
+
+**Reference**: [RT-Thread ADC Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/adc/adc)
+
 ## Hardware Description
 
 As shown in the following schematic diagram, there are 4 ADC channel interfaces on the Titan Board, namely channels 0, 1, 2 and 3 of adc0.

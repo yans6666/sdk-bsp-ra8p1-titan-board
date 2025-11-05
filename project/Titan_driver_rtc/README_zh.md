@@ -139,39 +139,115 @@ RA8 RTC 模块包含以下功能模块：
 
 ## RT-Thread RTC 驱动框架
 
-RT-Thread 提供统一的 **RTC 驱动框架**，抽象底层硬件接口，提供标准化 API 以支持时间管理和闹钟功能。
+**RT-Thread RTC（Real-Time Clock）框架** 是 RT-Thread 设备驱动层提供的统一接口，用于管理各类 MCU 的实时时钟硬件模块。该框架将底层 RTC 硬件抽象为标准化设备接口，使应用层能够通过统一的 API 进行日期时间管理、时间戳获取及闹钟（Alarm）设置等功能，实现跨平台的时间管理能力。
 
-### 1. 主要接口
+### 1. 设备模型
 
-| 函数 / 宏                                 | 功能                                |
-| ----------------------------------------- | ----------------------------------- |
-| `rt_device_find("rtc")`                   | 获取 RTC 设备句柄                   |
-| `rt_device_open(dev, flags)`              | 打开 RTC 设备并初始化硬件           |
-| `rt_device_control(dev, cmd, args)`       | 配置 RTC：设置/获取时间，设置闹钟等 |
-| `rt_device_read(dev, pos, buffer, size)`  | 读取当前时间或闹钟状态              |
-| `rt_device_write(dev, pos, buffer, size)` | 写入时间或闹钟值                    |
-| `rt_device_close(dev)`                    | 关闭 RTC 设备                       |
+在 RT-Thread 中，RTC 被作为 **设备对象**（`struct rt_device` 的子类，类型为 `RT_Device_Class_RTC`）进行管理。开发者无需操作底层寄存器，只需通过标准接口即可完成时间设置、读取和闹钟控制等操作。
 
-------
+### 2. 操作接口
 
-### 2. `rt_device_control` 常用命令
+应用程序通过 RT-Thread 提供的 I/O 设备管理接口来访问 RTC 设备，相关接口如下所示：
 
-| 命令                           | 描述                       |
-| ------------------------------ | -------------------------- |
-| `RT_DEVICE_CTRL_RTC_SET_TIME`  | 设置当前 RTC 时间          |
-| `RT_DEVICE_CTRL_RTC_GET_TIME`  | 获取当前 RTC 时间          |
-| `RT_DEVICE_CTRL_RTC_SET_ALARM` | 设置闹钟时间并使能闹钟中断 |
-| `RT_DEVICE_CTRL_RTC_GET_ALARM` | 获取已配置的闹钟时间       |
-| `RT_DEVICE_CTRL_RTC_ENABLE`    | 使能 RTC                   |
-| `RT_DEVICE_CTRL_RTC_DISABLE`   | 禁用 RTC                   |
+- 查找 RTC 设备
 
-------
+```c
+rt_device_t rt_device_find(const char* name);
+```
 
-### 3. 闹钟处理
+- 打开 RTC 设备
 
-- 通过 `RT_DEVICE_CTRL_RTC_SET_ALARM` 配置闹钟。
-- 使能中断，当闹钟触发时 MCU 收到通知。
-- 中断服务例程可更新标志、触发事件或唤醒低功耗 MCU。
+```c
+rt_err_t rt_device_open(rt_device_t dev, rt_uint16_t oflags);
+```
+
+- 设置日期
+
+```c
+rt_err_t set_date(rt_uint32_t year, rt_uint32_t month, rt_uint32_t day);
+```
+
+- 设置时间
+
+```c
+rt_err_t set_time(rt_uint32_t hour, rt_uint32_t minute, rt_uint32_t second);
+```
+
+- 获取当前时间
+
+可通过 C 标准库函数获取当前时间戳（UTC 时间）：
+
+```c
+time_t time(time_t *t);
+```
+
+### 3. Alarm 功能
+
+RTC 框架支持 **闹钟（Alarm）功能**，可用于定时唤醒、任务提醒或周期事件。
+ 应用程序可通过 RT-Thread 提供的 alarm 组件接口进行操作：
+
+- 创建闹钟
+
+```c
+rt_alarm_t rt_alarm_create(rt_alarm_callback_t callback, struct rt_alarm_setup *setup);
+```
+
+`rt_alarm_setup` 结构体定义如下：
+
+```c
+struct rt_alarm_setup
+{
+    rt_uint32_t flag;                /* alarm flag */
+    struct tm wktime;                /* alarm trigger time */
+};
+```
+
+闹钟模式可通过 `flag` 字段设置：
+
+```c
+#define RT_ALARM_ONESHOT       0x000   /* 仅触发一次 */
+#define RT_ALARM_DAILY         0x100   /* 每天触发 */
+#define RT_ALARM_WEEKLY        0x200   /* 每周特定日触发 */
+#define RT_ALARM_MONTHLY       0x400   /* 每月特定日触发 */
+#define RT_ALARM_YEARLY        0x800   /* 每年特定日期触发 */
+#define RT_ALARM_HOUR          0x1000  /* 每小时触发 */
+#define RT_ALARM_MINUTE        0x2000  /* 每分钟触发 */
+#define RT_ALARM_SECOND        0x4000  /* 每秒触发 */
+```
+
+- 启动闹钟
+
+```c
+rt_err_t rt_alarm_start(rt_alarm_t alarm);
+```
+
+- 停止闹钟
+
+```c
+rt_err_t rt_alarm_stop(rt_alarm_t alarm);
+```
+
+- 删除闹钟
+
+```c
+rt_err_t rt_alarm_delete(rt_alarm_t alarm);
+```
+
+- 控制闹钟
+
+```c
+rt_err_t rt_alarm_control(rt_alarm_t alarm, int cmd, void *arg);
+```
+
+### 4. 框架特点
+
+- **接口统一**：统一的设备接口屏蔽硬件差异，简化时间管理操作。
+- **跨平台支持**：适配多种 MCU 的 RTC 模块，应用可无缝移植。
+- **支持闹钟机制**：支持一次性、周期性、多级别触发模式。
+- **系统时间同步**：与 POSIX 时间接口兼容，支持标准时间戳管理。
+- **低功耗特性**：支持深度睡眠唤醒、掉电保持等特性。
+
+**参考**：[RT-Thread RTC 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/rtc/rtc)
 
 ## 硬件说明
 

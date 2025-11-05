@@ -137,6 +137,102 @@ The RA8 series SPI (r_spi_b) consists of the following submodules:
    - Short transfers: handled via interrupts
    - Large data transfers: automatically handled via DMA/DTC, CPU only needs to configure initial parameters
 
+## RT-Thread SPI Driver Framework
+
+**The RT-Thread SPI (Serial Peripheral Interface) framework** is a unified interface provided by the RT-Thread device driver layer to manage SPI peripherals across different MCUs. It abstracts low-level hardware register operations, allowing applications to communicate with SPI slave devices via standardized APIs in an efficient, reliable, and portable way.
+
+### 1. Device Model
+
+In RT-Thread, the SPI system consists of **buses** and **devices**. SPI devices are managed as **device objects** (subclass of `struct rt_device`, type `RT_Device_Class_SPIBUS` or `RT_Device_Class_SPIDevice`). Developers do not need to access hardware registers directly — all send, receive, and chip-select operations can be performed through standard RT-Thread SPI APIs.
+
+### 2. Operation Interfaces
+
+Applications interact with SPI devices through RT-Thread’s device management interfaces. Common APIs include:
+
+- Find SPI device
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- Custom message transfer
+
+```c
+struct rt_spi_message *rt_spi_transfer_message(struct rt_spi_device *device,
+                                               struct rt_spi_message *message);
+```
+
+This function allows transferring a sequence of messages.
+ Users can define multiple `message` structures to precisely control chip-select behavior and transfer sequence.
+ The `struct rt_spi_message` is defined as follows:
+
+```c
+struct rt_spi_message
+{
+    const void *send_buf;           /* Send buffer pointer */
+    void *recv_buf;                 /* Receive buffer pointer */
+    rt_size_t length;               /* Number of bytes to transfer */
+    struct rt_spi_message *next;    /* Pointer to next message */
+    unsigned cs_take    : 1;        /* Chip select active */
+    unsigned cs_release : 1;        /* Chip select release */
+};
+```
+
+- Transfer a single block of data
+
+```c
+rt_size_t rt_spi_transfer(struct rt_spi_device *device,
+                          const void           *send_buf,
+                          void                 *recv_buf,
+                          rt_size_t             length);
+```
+
+- Send-only transfer (ignore received data)
+
+```c
+rt_size_t rt_spi_send(struct rt_spi_device *device,
+                      const void           *send_buf,
+                      rt_size_t             length);
+```
+
+- Receive-only transfer
+
+```c
+rt_size_t rt_spi_recv(struct rt_spi_device *device,
+                      void                 *recv_buf,
+                      rt_size_t             length);
+```
+
+- Send two buffers continuously (without releasing chip select)
+
+```c
+rt_err_t rt_spi_send_then_send(struct rt_spi_device *device,
+                               const void           *send_buf1,
+                               rt_size_t             send_length1,
+                               const void           *send_buf2,
+                               rt_size_t             send_length2);
+```
+
+- Send then receive data (without releasing chip select)
+
+```c
+rt_err_t rt_spi_send_then_recv(struct rt_spi_device *device,
+                               const void           *send_buf,
+                               rt_size_t             send_length,
+                               void                 *recv_buf,
+                               rt_size_t             recv_length);
+```
+
+### 3. Framework Features
+
+- **Unified abstraction**: Supports both master and slave communication through standard APIs.
+- **Cross-platform**: Portable across different MCU platforms with no code changes.
+- **Flexible chip-select control**: Supports single, continuous, and combined transfer modes.
+- **Message chaining**: Enables complex multi-message transfers via `rt_spi_message`.
+- **High extensibility**: Easily integrates with DMA or RT-Thread IPC mechanisms for better performance.
+
+**Reference**: [RT-Thread SPI Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/spi/spi)
+
 ## Hardware Description
 
 The Titan Board uses SPI0 to communicate with the BMI088 gyroscope.

@@ -199,6 +199,12 @@ CEU 摄像头接口和 RGB LCD 接口如下图所示：
 
 ![image-20250924115414432](figures/image-20250924115414432.png)
 
+
+
+![image-20251031172229786](figures/image-20251031172229786.png)
+
+![image-20251031172918079](figures/image-20251031172918079.png)
+
 * HyperRAM 引脚配置：
 
 ![image-20250814160618340](figures/image-20250814160618340.png)

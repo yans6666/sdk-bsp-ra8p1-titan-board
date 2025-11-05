@@ -192,6 +192,10 @@ The MIPI DSI/CSI interface and the RGB LCD interface are shown in the following 
 
 ![image-20250924115414432](figures/image-20250924115414432.png)
 
+![image-20251031172229786](figures/image-20251031172229786.png)
+
+![image-20251031172918079](figures/image-20251031172918079.png)
+
 * HyperRAM pin configuration:
 
 ![image-20250814160618340](figures/image-20250814160618340.png)

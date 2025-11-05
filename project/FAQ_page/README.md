@@ -150,7 +150,9 @@ Display model: **Guanxian TL043WVV02CT**
 Use a **22-pin reverse FFC cable** to connect the development board’s **MIPI DSI/CSI** connector to the display adapter board’s **DIS-MIPI** connector.
  Then connect the **MIPI display** to the adapter board’s **TITAN-MIPI** connector.
 
->Use a Dupont wire to connect a GPIO pin to the **BL** pin on the adapter board to provide backlight power.
+A Dupont wire is required to connect the **BL** pin on the display adapter board to the **PB07** pin (the GPIO pin used to provide backlight can be changed as needed).
+
+![image-20251105125023597](figures/image-20251105125023597.png)
 
 ![image-20251103115211524](figures/image-20251103115211524.png)
 

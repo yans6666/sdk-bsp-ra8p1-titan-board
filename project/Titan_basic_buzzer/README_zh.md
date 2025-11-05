@@ -52,6 +52,8 @@
 
 > 注意：`period_ns/pulse_ns` 通常为 32 位数值，建议避免过低频率导致周期过大；若需要极低频，可考虑软件定时或分段播放。
 
+**参考**：[RT-Thread PWM 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/pwm/pwm)
+
 ## 硬件说明
 
 蜂鸣器的引脚为 PA07。

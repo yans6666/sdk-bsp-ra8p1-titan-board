@@ -28,6 +28,8 @@ The RA8 series MCU has the following interrupt features:
      - `rt_pin_attach_irq(pin, mode, callback, args)`: register an interrupt callback.
      - `rt_pin_irq_enable(pin, enable)`: enable or disable interrupts.
 
+Reference: [RT-Thread PIN Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/pin/pin)
+
 > Using the RT-Thread PIN driver allows interrupt handling without directly accessing the NVIC or MCU registers.
 
 ## Hardware Description

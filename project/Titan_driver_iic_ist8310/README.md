@@ -153,6 +153,76 @@ The RA8 I2C controller consists of:
 - **SDA/SCL idle power consumption** very low
 - **Deep sleep wake-up**: I2C peripheral can wake the MCU
 
+## RT-Thread I2C Framework Introduction
+
+**The RT-Thread I2C (Inter-Integrated Circuit) framework** is a unified interface provided by the RT-Thread device driver layer for managing MCU I2C bus devices and communication with slave devices. This framework abstracts I2C bus hardware into a standard device interface, allowing applications to perform master-slave data transmission through a unified API and supporting cross-platform development.
+
+### 1. Device Model
+
+In RT-Thread, I2C buses are managed as **device objects** (subclass of `struct rt_device`, type `RT_Device_Class_I2C`). Slave devices communicate via the I2C device interface. Developers do not need to manipulate hardware registers directly; all data transfers can be done using standard device interfaces.
+
+### 2. Operation Interfaces
+
+Applications access I2C buses through RT-Thread’s I/O device interfaces. Key APIs include:
+
+- Find I2C bus device
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- I2C data transfer
+
+```c
+rt_size_t rt_i2c_transfer(struct rt_i2c_bus_device *bus,
+                          struct rt_i2c_msg         msgs[],
+                          rt_uint32_t               num);
+```
+
+I2C message structure:
+
+```c
+struct rt_i2c_msg
+{
+    rt_uint16_t addr;    /* Slave address */
+    rt_uint16_t flags;   /* Read/Write flags */
+    rt_uint16_t len;     /* Data length in bytes */
+    rt_uint8_t  *buf;    /* Data buffer pointer */
+};
+```
+
+For simplicity, RT-Thread provides wrapper functions to read/write data to/from I2C slave devices:
+
+- Send data to I2C slave
+
+```c
+rt_size_t rt_i2c_master_send(struct rt_i2c_bus_device *bus,
+                             rt_uint16_t               addr,
+                             rt_uint16_t               flags,
+                             const rt_uint8_t         *buf,
+                             rt_uint32_t               count);
+```
+
+- Receive data from I2C slave
+
+```c
+rt_size_t rt_i2c_master_recv(struct rt_i2c_bus_device *bus,
+                             rt_uint16_t               addr,
+                             rt_uint16_t               flags,
+                             rt_uint8_t               *buf,
+                             rt_uint32_t               count);
+```
+
+### 3. Framework Features
+
+- **Unified Interface**: All I2C bus hardware is exposed to the application through the same interface.
+- **Cross-Platform Support**: Applications can be ported across different MCU platforms without modifying I2C code.
+- **Flexible Data Transfer**: Supports single or multiple message transfers, including repeated start conditions.
+- **Easy-to-Use Wrapper Functions**: `rt_i2c_master_send` and `rt_i2c_master_recv` simplify read/write operations.
+- **Supports Multiple Transfer Modes**: Can handle standard I2C read/write and complex communication scenarios.
+
+**Reference**: [RT-Thread I2C Bus Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/i2c/i2c)
+
 ## Hardware Description
 
 Titan Board uses IIC2 to communicate with IST8310.

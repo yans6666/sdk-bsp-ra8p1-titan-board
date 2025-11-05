@@ -37,7 +37,7 @@ The current peripheral support status in this BSP is as follows:
 | I2C                    | Supported          | TFTP                        | Supported          |
 | WDT                    | Supported          | Telnet                      | Supported          |
 | RTC                    | Supported          | **Multicore Communication** | **Support Status** |
-| ADC                    | Supported          | RPmsg-Lite                  | Supported          |
+| ADC                    | Supported          | RPMsg-Lite                  | Supported          |
 | DAC                    | Supported          | **Extended peripheral**     | **Support Status** |
 | SPI                    | Supported          | MIPI CSI Camera             | Supported          |
 | RS485                  | Supported          | CEU Camera                  | Supported          |
@@ -65,15 +65,19 @@ This BSP currently provides an RT-Thread Studio project. Below, we use the RT-Th
 
 **Create a Project**
 
-- Download the **Titan Board** resource package and **GNU Tools for ARM Embedded Processors v13.3**.
+- Download the **Titan Board SDK** resource package.
 
-![image-20250905143443927](figures/image-20250905143443927.png)
+![image-20251031110044228](figures/image-20251031110044228.png)
+
+* Download the compilation toolchain and debugging tools.
+
+![image-20251031110119279](figures/image-20251031110119279.png)
 
 - Create a new RT-Thread project.
 
 ![image-20250819171350806](figures/image-20250819171350806.png)
 
-![image-20251015155134540](figures/image-20251015155134540.png)
+![image-20251031110700267](figures/image-20251031110700267.png)
 
 **Hardware Connection**
 

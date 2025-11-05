@@ -76,28 +76,15 @@ The RA8 GLCDC module mainly consists of the following submodules:
 | Interrupts       | Frame-end, line-end interrupts for synchronized refresh  |
 | Rotation/Flip    | Supports 90°/180°/270° rotation and X/Y flipping         |
 
-------
-
-## RT-Thread LCD Driver Framework
-
-RT-Thread provides a **LCD driver framework**, which abstracts the underlying controller and supports different screen types and MCU peripherals. Key interfaces include:
-
-### Main Interfaces
-
-| Function/Macro                            | Purpose                                                      |
-| ----------------------------------------- | ------------------------------------------------------------ |
-| `rt_device_find("lcd")`                   | Find the LCD device handle                                   |
-| `rt_device_open(dev, flags)`              | Open the device and initialize the LCD hardware              |
-| `rt_device_control(dev, cmd, args)`       | Control the LCD, e.g., update image, set backlight, read screen info |
-| `rt_device_write(dev, pos, buffer, size)` | Write pixel data to the LCD                                  |
-| `rt_device_read(dev, pos, buffer, size)`  | Read pixel data from the LCD (supported on some screens)     |
-| `rt_device_close(dev)`                    | Close the LCD device                                         |
-
 ## Hardware Description
 
 The following figure shows the MIPI DSI/CSI interface on the Titan Board. To connect the MIPI DSI screen, another adapter board is needed.
 
 ![image-20251017171808172](figures/image-20251017171808172.png)
+
+In this example, a Dupont wire is required to connect the **BL** pin on the display adapter board to the **PB07** pin (the GPIO pin used to provide backlight can be changed as needed).
+
+![image-20251105125023597](figures/image-20251105125023597.png)
 
 ## FSP Configuration
 
@@ -110,6 +97,10 @@ The following figure shows the MIPI DSI/CSI interface on the Titan Board. To con
 * Configuration `r_ospi_b` stack：
 
 ![image-20250924115414432](figures/image-20250924115414432.png)
+
+![image-20251031172229786](figures/image-20251031172229786.png)
+
+![image-20251031172918079](figures/image-20251031172918079.png)
 
 * Configuration HyperRAM pins：
 
@@ -153,7 +144,56 @@ The following figure shows the MIPI DSI/CSI interface on the Titan Board. To con
 
 * Enable MIPI LCD in RT-Thread Settings.
 
-![image-20251017174840643](figures/image-20251017174840643.png)
+![image-20251031180143626](figures/image-20251031180143626.png)
+
+## Example Code Description
+
+```c
+int lcd_test(void)
+{
+    struct drv_lcd_device *lcd;
+    struct rt_device_rect_info rect_info;
+    rect_info.x = 0;
+    rect_info.y = 0;
+    rect_info.width = LCD_WIDTH;
+    rect_info.height = LCD_HEIGHT;
+
+    lcd = (struct drv_lcd_device *)rt_device_find("lcd");
+
+    for (int i = 0; i < 2; i++)
+    {
+        /* red */
+        for (int i = 0; i < LCD_BUF_SIZE / 2; i++)
+        {
+            lcd->lcd_info.framebuffer[2 * i] = 0x00;
+            lcd->lcd_info.framebuffer[2 * i + 1] = 0xF8;
+        }
+        LOG_D("red buffer...");
+        rt_device_control(&lcd->parent, RTGRAPHIC_CTRL_RECT_UPDATE, &rect_info);
+        rt_thread_mdelay(1000);
+        /* green */
+        for (int i = 0; i < LCD_BUF_SIZE / 2; i++)
+        {
+            lcd->lcd_info.framebuffer[2 * i] = 0xE0;
+            lcd->lcd_info.framebuffer[2 * i + 1] = 0x07;
+        }
+        LOG_D("green buffer...");
+        rt_device_control(&lcd->parent, RTGRAPHIC_CTRL_RECT_UPDATE, &rect_info);
+        rt_thread_mdelay(1000);
+        /* blue */
+        for (int i = 0; i < LCD_BUF_SIZE / 2; i++)
+        {
+            lcd->lcd_info.framebuffer[2 * i] = 0x1F;
+            lcd->lcd_info.framebuffer[2 * i + 1] = 0x00;
+        }
+        LOG_D("blue buffer...");
+        rt_device_control(&lcd->parent, RTGRAPHIC_CTRL_RECT_UPDATE, &rect_info);
+        rt_thread_mdelay(1000);
+    }
+    return RT_EOK;
+}
+MSH_CMD_EXPORT(lcd_test, lcd test cmd);
+```
 
 ## Compilation & Download
 

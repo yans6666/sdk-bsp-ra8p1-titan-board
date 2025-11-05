@@ -126,20 +126,86 @@ RA8 UART 模块对 RS485 支持如下：
    - 错误中断：帧错误、溢出、奇偶校验错误
    - 发送完成中断：可用于 RS485 DE 自动控制
 
-## RT-Thread UART 驱动框架
+## RT-Thread UART v2 驱动框架
 
-RT-Thread 提供统一的 **串口驱动框架**，支持标准 UART 和 RS485。
+**RT-Thread UART v2（Universal Asynchronous Receiver/Transmitter）框架** 是 RT-Thread 设备驱动层提供的统一接口，用于管理各类 MCU 的串口通信模块。UART v2 相较于旧版 UART 框架，进一步标准化了接口定义，增强了事件回调和中断机制支持，使应用层能够以统一的方式实现串口通信功能。
 
-### 主要接口
+### 1. 设备模型
 
-| 函数/宏                                   | 功能                                        |
-| ----------------------------------------- | ------------------------------------------- |
-| `rt_device_find("uartX")`                 | 查找 UART 设备句柄                          |
-| `rt_device_open(dev, flags)`              | 打开设备，初始化硬件                        |
-| `rt_device_control(dev, cmd, args)`       | 控制 UART，例如设置波特率、模式、RS485 方向 |
-| `rt_device_write(dev, pos, buffer, size)` | 发送数据                                    |
-| `rt_device_read(dev, pos, buffer, size)`  | 接收数据                                    |
-| `rt_device_close(dev)`                    | 关闭 UART                                   |
+在 RT-Thread 中，UART 被作为 **设备对象**（`struct rt_device` 的子类，类型为 `RT_Device_Class_Char`）进行管理。开发者无需直接操作底层寄存器，只需通过标准接口即可完成串口设备的初始化、配置、收发以及回调注册等操作。
+
+### 2. 操作接口
+
+应用程序通过 RT-Thread 提供的 I/O 设备管理接口来访问 UART 硬件，相关接口如下所示：
+
+- 查找串口设备
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- 打开串口设备
+
+```c
+rt_err_t rt_device_open(rt_device_t dev, rt_uint16_t oflags);
+```
+
+- 控制串口设备
+
+通过控制接口，应用程序可以对串口进行配置，如波特率、数据位、校验位、停止位、缓冲区大小等参数。控制函数如下：
+
+```c
+rt_err_t rt_device_control(rt_device_t dev, rt_uint8_t cmd, void* arg);
+```
+
+- 发送数据
+
+```c
+rt_size_t rt_device_write(rt_device_t dev, rt_off_t pos, const void* buffer, rt_size_t size);
+```
+
+- 设置发送完成回调函数
+
+```c
+rt_err_t rt_device_set_tx_complete(rt_device_t dev, rt_err_t (*tx_done)(rt_device_t dev, void* buffer));
+```
+
+- 设置接收回调函数
+
+```c
+rt_err_t rt_device_set_rx_indicate(rt_device_t dev, rt_err_t (*rx_ind)(rt_device_t dev, rt_size_t size));
+```
+
+- 接收数据
+
+```c
+rt_size_t rt_device_read(rt_device_t dev, rt_off_t pos, void* buffer, rt_size_t size);
+```
+
+- 关闭串口设备
+
+```c
+rt_err_t rt_device_close(rt_device_t dev);
+```
+
+常用控制命令如下（通过 `rt_device_control()` 调用）：
+
+```c
+#define RT_DEVICE_CTRL_CONFIG        (0x10)   /* 配置串口参数 */
+#define RT_DEVICE_CTRL_SET_INT       (0x11)   /* 使能中断 */
+#define RT_DEVICE_CTRL_CLR_INT       (0x12)   /* 关闭中断 */
+#define RT_DEVICE_CTRL_CUSTOM_CMD    (0x13)   /* 自定义控制命令 */
+```
+
+### 3. 框架特点
+
+- **接口统一**：串口设备的读写、控制、回调等操作统一封装为标准接口。
+- **事件回调机制**：支持接收与发送完成的回调函数，提高异步通信能力。
+- **可配置参数丰富**：支持灵活配置波特率、校验位、数据位和停止位。
+- **中断与 DMA 支持**：可根据驱动实现选择中断模式或 DMA 模式进行收发。
+- **跨平台移植性强**：应用层代码可在不同 MCU 平台间无缝复用。
+
+**参考**：[RT-Thread UART 设备 V2 版本](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/uart/uart_v2/uart)
 
 ## 硬件说明
 
@@ -164,6 +230,127 @@ RT-Thread 提供统一的 **串口驱动框架**，支持标准 UART 和 RS485�
 * 使能并配置 RS485。
 
 ![image-20250815104950997](figures/image-20250815104950997.png)
+
+## 工程示例说明
+
+```c
+#define RS485_OUT       rt_pin_write((rt_base_t)RS485_DE_PIN, PIN_HIGH)
+#define RS485_IN        rt_pin_write((rt_base_t)RS485_DE_PIN, PIN_LOW)
+
+static rt_device_t rs485_serial = RT_NULL;
+static struct rt_semaphore rs485_rx_sem;
+static struct rt_ringbuffer rs485_rx_rb;
+static rt_uint8_t rs485_rx_buffer[RS485_RX_BUFFER_SIZE];
+
+/* uart receive data callback function */
+static rt_err_t rs485_input(rt_device_t dev, rt_size_t size)
+{
+    if (size > 0)
+    {
+        rt_uint8_t ch;
+        while (rt_device_read(dev, 0, &ch, 1) == 1)
+        {
+            rt_ringbuffer_put_force(&rs485_rx_rb, &ch, 1);
+        }
+        rt_sem_release(&rs485_rx_sem);
+    }
+    return RT_EOK;
+}
+
+/* send data */
+int rs485_send_data(const void *tbuf, rt_uint16_t t_len)
+{
+    RT_ASSERT(tbuf != RT_NULL);
+
+    /* change rs485 mode to transmit */
+    RS485_OUT;
+
+    /* send data */
+    rt_size_t sent = rt_device_write(rs485_serial, 0, tbuf, t_len);
+
+    if (sent != t_len)
+    {
+        /* Transmission failed, switch back to receive mode */
+        RS485_IN;
+        return -RT_ERROR;
+    }
+
+    /* Note: We don't switch back to receive mode here -
+       that will be done in the tx_complete callback (rs485_output) */
+
+    LOG_I("send==>>");
+    for (int i = 0; i < t_len; i++)
+    {
+        LOG_I("   %d:   %c ", i, ((rt_uint8_t *)tbuf)[i]);
+    }
+    RS485_IN;
+
+    return RT_EOK;
+}
+
+static void rs485_thread_entry(void *parameter)
+{
+    rt_uint8_t ch;
+    rt_size_t length;
+
+    while (1)
+    {
+        /* Wait for data */
+        rt_sem_take(&rs485_rx_sem, RT_WAITING_FOREVER);
+
+        /* Process all available data in the ring buffer */
+        while (length = rt_ringbuffer_get(&rs485_rx_rb, &ch, 1))
+        {
+            if (length == 1)
+            {
+                LOG_I("recv data:%c", ch);
+            }
+        }
+    }
+}
+
+int rs485_init(void)
+{
+    /* Initialize ring buffer */
+    rt_ringbuffer_init(&rs485_rx_rb, rs485_rx_buffer, RS485_RX_BUFFER_SIZE);
+
+    /* find uart device */
+    rs485_serial = rt_device_find(RS485_UART_DEVICE_NAME);
+    if (!rs485_serial)
+    {
+        LOG_E("find %s failed!", RS485_UART_DEVICE_NAME);
+        return -RT_ERROR;
+    }
+
+    /* Open device in interrupt mode with DMA support if available */
+    rt_device_open(rs485_serial, RT_DEVICE_FLAG_INT_RX | RT_DEVICE_FLAG_DMA_RX);
+
+    /* set receive data callback function */
+    rt_device_set_rx_indicate(rs485_serial, rs485_input);
+
+    /* Initialize RTS pin */
+    rt_pin_mode((rt_base_t)RS485_DE_PIN, PIN_MODE_OUTPUT);
+    RS485_IN;
+
+    /* Initialize semaphore */
+    rt_sem_init(&rs485_rx_sem, "rs485_rx_sem", 0, RT_IPC_FLAG_FIFO);
+
+    rt_thread_t thread = rt_thread_create("rs485", rs485_thread_entry, RT_NULL,
+                                        1024, 25, 10);
+
+    if (thread != RT_NULL)
+    {
+        rt_thread_startup(thread);
+    }
+    else
+    {
+        return -RT_ERROR;
+    }
+
+    return RT_EOK;
+}
+INIT_DEVICE_EXPORT(rs485_init);
+```
 
 ##  编译&下载
 

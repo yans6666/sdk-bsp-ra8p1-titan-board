@@ -156,6 +156,76 @@ RA8 I2C 控制器主要由以下模块组成：
 - **SDA/SCL 空闲功耗极低**
 - **支持深度睡眠唤醒**：I2C 外设可用于唤醒 MCU
 
+## RT-Thread I2C 框架简介
+
+**RT-Thread I2C（Inter-Integrated Circuit）框架** 是 RT-Thread 设备驱动层提供的统一接口，用于管理 MCU 的 I2C 总线设备和从设备通信。该框架将 I2C 总线硬件抽象为标准化设备接口，使应用层能够通过统一 API 实现主设备与从设备之间的数据传输，支持跨平台开发。
+
+### 1. 设备模型
+
+在 RT-Thread 中，I2C 总线被作为 **设备对象**（`struct rt_device` 的子类，类型为 `RT_Device_Class_I2C`）进行管理。I2C 从设备通过 I2C 设备接口与总线通信，开发者无需直接操作硬件寄存器，只需调用标准接口即可完成数据传输。
+
+### 2. 操作接口
+
+应用程序通过 RT-Thread 提供的 I/O 设备接口来访问 I2C 总线，主要接口如下所示：
+
+- 查找 I2C 总线设备
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- I2C 数据传输
+
+```c
+rt_size_t rt_i2c_transfer(struct rt_i2c_bus_device *bus,
+                          struct rt_i2c_msg         msgs[],
+                          rt_uint32_t               num);
+```
+
+I2C 消息结构体原型：
+
+```c
+struct rt_i2c_msg
+{
+    rt_uint16_t addr;    /* 从机地址 */
+    rt_uint16_t flags;   /* 读/写标志 */
+    rt_uint16_t len;     /* 数据字节长度 */
+    rt_uint8_t  *buf;    /* 数据缓冲区指针 */
+};
+```
+
+为简化操作，RT-Thread 提供了封装函数用于向 I2C 从设备读写数据：
+
+- 向 I2C 从设备发送数据
+
+```c
+rt_size_t rt_i2c_master_send(struct rt_i2c_bus_device *bus,
+                             rt_uint16_t               addr,
+                             rt_uint16_t               flags,
+                             const rt_uint8_t         *buf,
+                             rt_uint32_t               count);
+```
+
+- 从 I2C 从设备读取数据
+
+```c
+rt_size_t rt_i2c_master_recv(struct rt_i2c_bus_device *bus,
+                             rt_uint16_t               addr,
+                             rt_uint16_t               flags,
+                             rt_uint8_t               *buf,
+                             rt_uint32_t               count);
+```
+
+### 3. 框架特点
+
+- **统一接口**：所有 I2C 总线硬件通过相同接口暴露给应用层。
+- **跨平台支持**：应用程序可在不同 MCU 平台间移植而无需修改 I2C 代码。
+- **灵活的数据传输**：支持单条或多条消息传输，可实现重复启动条件。
+- **易用封装函数**：提供 `rt_i2c_master_send` 和 `rt_i2c_master_recv` 简化读写操作。
+- **支持多种传输模式**：可实现标准 I2C 的读写操作和复杂数据通信场景。
+
+**参考**：[RT-Thread I2C 总线设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/i2c/i2c)
+
 ## 硬件说明
 
 Titan Board 使用 IIC2 与 IST8310 通信。

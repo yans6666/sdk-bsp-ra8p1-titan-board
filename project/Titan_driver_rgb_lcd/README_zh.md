@@ -74,21 +74,6 @@ RA8 GLCDC 模块主要包含以下子模块：
 | 中断      | 帧结束、行结束中断，可用于屏幕刷新同步           |
 | 旋转/翻转 | 支持 90°/180°/270°旋转及 X/Y 翻转                |
 
-## RT-Thread LCD 驱动框架
-
-RT-Thread 提供了 **统一的 LCD 驱动框架**，通过封装底层控制器，支持不同屏幕类型与 MCU 外设。框架主要接口如下：
-
-### 主要接口
-
-| 函数/宏                                   | 功能                                              |
-| ----------------------------------------- | ------------------------------------------------- |
-| `rt_device_find("lcd")`                   | 查找 LCD 设备句柄                                 |
-| `rt_device_open(dev, flags)`              | 打开设备，初始化 LCD 硬件                         |
-| `rt_device_control(dev, cmd, args)`       | 控制 LCD，例如更新lcd图像、设置背光、读取屏幕信息 |
-| `rt_device_write(dev, pos, buffer, size)` | 向 LCD 写入像素数据                               |
-| `rt_device_read(dev, pos, buffer, size)`  | 从 LCD 读取像素数据（部分屏幕支持）               |
-| `rt_device_close(dev)`                    | 关闭设备                                          |
-
 ## 硬件说明
 
 ![image-20251015150343012](figures/image-20251015150343012.png)
@@ -103,7 +88,11 @@ RT-Thread 提供了 **统一的 LCD 驱动框架**，通过封装底层控制器
 
 * 配置 r_ospi_b stack：
 
-![image-20250815132512856](figures/image-20250815132512856.png)
+![image-20250924115414432](figures/image-20250924115414432.png)
+
+![image-20251031172229786](figures/image-20251031172229786.png)
+
+![image-20251031172918079](figures/image-20251031172918079.png)
 
 * HyperRAM 引脚配置：
 
@@ -149,7 +138,56 @@ RT-Thread 提供了 **统一的 LCD 驱动框架**，通过封装底层控制器
 
 * 在 RT-Thread Settings 中使能 RGB565 LCD，使用 pwm7 输出屏幕背光。
 
-![image-20250815135800213](figures/image-20250815135800213.png)
+![image-20251031175957561](figures/image-20251031175957561.png)
+
+## 工程示例说明
+
+```c
+int lcd_test(void)
+{
+    struct drv_lcd_device *lcd;
+    struct rt_device_rect_info rect_info;
+    rect_info.x = 0;
+    rect_info.y = 0;
+    rect_info.width = LCD_WIDTH;
+    rect_info.height = LCD_HEIGHT;
+
+    lcd = (struct drv_lcd_device *)rt_device_find("lcd");
+
+    for (int i = 0; i < 2; i++)
+    {
+        /* red */
+        for (int i = 0; i < LCD_BUF_SIZE / 2; i++)
+        {
+            lcd->lcd_info.framebuffer[2 * i] = 0x00;
+            lcd->lcd_info.framebuffer[2 * i + 1] = 0xF8;
+        }
+        LOG_D("red buffer...");
+        rt_device_control(&lcd->parent, RTGRAPHIC_CTRL_RECT_UPDATE, &rect_info);
+        rt_thread_mdelay(1000);
+        /* green */
+        for (int i = 0; i < LCD_BUF_SIZE / 2; i++)
+        {
+            lcd->lcd_info.framebuffer[2 * i] = 0xE0;
+            lcd->lcd_info.framebuffer[2 * i + 1] = 0x07;
+        }
+        LOG_D("green buffer...");
+        rt_device_control(&lcd->parent, RTGRAPHIC_CTRL_RECT_UPDATE, &rect_info);
+        rt_thread_mdelay(1000);
+        /* blue */
+        for (int i = 0; i < LCD_BUF_SIZE / 2; i++)
+        {
+            lcd->lcd_info.framebuffer[2 * i] = 0x1F;
+            lcd->lcd_info.framebuffer[2 * i + 1] = 0x00;
+        }
+        LOG_D("blue buffer...");
+        rt_device_control(&lcd->parent, RTGRAPHIC_CTRL_RECT_UPDATE, &rect_info);
+        rt_thread_mdelay(1000);
+    }
+    return RT_EOK;
+}
+MSH_CMD_EXPORT(lcd_test, lcd test cmd);
+```
 
 ## 编译&下载
 

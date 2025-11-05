@@ -37,7 +37,7 @@
 | IIC          | 支持         | TFTP     | 支持         |
 | WDT          | 支持         | Telnet | 支持 |
 | RTC          | 支持         | **多核通信** | **支持情况** |
-| ADC          | 支持         | RPmsg-Lite | 支持 |
+| ADC          | 支持         | RPMsg-Lite | 支持 |
 | DAC          | 支持         | **拓展外设** | **支持情况** |
 | SPI          | 支持         | MIPI CSI Camera | 支持 |
 | RS485 | 支持 | CEU Camera | 支持 |
@@ -64,15 +64,19 @@
 
 **创建工程**
 
-* 下载 Titan Board 资源包、GNU_Tools_for_ARM_Embedded_Processors v13.3。
+* 下载 Titan Board SDK 资源包。
 
-![image-20250905143443927](figures/image-20250905143443927.png)
+![image-20251031110044228](figures/image-20251031110044228.png)
+
+* 下载编译工具链以及调试工具。
+
+![image-20251031110119279](figures/image-20251031110119279.png)
 
 * 新建 RT-Thread 项目
 
 ![image-20250819171350806](figures/image-20250819171350806.png)
 
-![image-20251015155134540](figures/image-20251015155134540.png)
+![image-20251031110700267](figures/image-20251031110700267.png)
 
 **硬件连接**
 

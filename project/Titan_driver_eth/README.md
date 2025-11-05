@@ -200,11 +200,11 @@ ETH1:
 
 * Configure the r_mac stack:
 
-![image-20250814152015360](figures/image-20250814152015360.png)
+![image-20251031163125761](figures/image-20251031163125761.png)
 
 * Configure r_layer3_switch：
 
-![image-20250814152126682](figures/image-20250814152126682.png)
+![image-20251031163345186](figures/image-20251031163345186.png)
 
 * Configure r_rmac_phy：
 
@@ -230,7 +230,7 @@ ETH1:
 
 ## Software Overview
 
-The Ethernet phy chip initialization function is in `./src/hal_entry.c`:
+The Ethernet phy chip initialization function is in `./board/ports/drv_rtl8211.c`:
 
 ```c
 void rmac_phy_target_rtl8211_initialize (rmac_phy_instance_ctrl_t * phydev)

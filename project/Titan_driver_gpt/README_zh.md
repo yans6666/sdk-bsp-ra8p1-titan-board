@@ -8,7 +8,7 @@
 
 ## PWM 简介
 
-**PWM(Pulse Width Modulation , 脉冲宽度调制) **是一种对模拟信号电平进行数字编码的方法，通过不同频率的脉冲使用方波的占空比用来对一个具体模拟信号的电平进行编码，使输出端得到一系列幅值相等的脉冲，用这些脉冲来代替所需要波形的设备。
+**PWM(Pulse Width Modulation , 脉冲宽度调制)**是一种对模拟信号电平进行数字编码的方法，通过不同频率的脉冲使用方波的占空比用来对一个具体模拟信号的电平进行编码，使输出端得到一系列幅值相等的脉冲，用这些脉冲来代替所需要波形的设备。
 
 ![PWM 原理图](https://www.rt-thread.org/document/site/rt-thread-version/rt-thread-standard/programming-manual/device/pwm/figures/pwm-f.png)
 
@@ -98,20 +98,51 @@ Renesas RA8 系列微控制器集成了高性能的通用 PWM 定时器（GPT）
 - **计数方式**：支持计数上升、下降或双向计数。
 - **高分辨率**：支持高分辨率 PWM 波形生成，适用于精密控制应用。
 
-## PWM 输出实现
+## RT-Thread PWM 框架简介
 
-PWM（脉宽调制）是一种常用的模拟信号模拟方法，通过调节脉冲的占空比来控制输出信号的平均电压。
+**RT-Thread PWM（Pulse Width Modulation）框架** 是 RT-Thread 设备驱动层提供的统一接口，用于管理各类 MCU 的 PWM 硬件模块。该框架将底层 PWM 功能抽象为标准设备接口，使应用层能够通过统一 API 配置周期和脉冲宽度，实现跨平台的 PWM 控制和应用。
 
-### 1. RT-Thread PWM 驱动框架
+### 1. 设备模型
 
-RT-Thread 提供了统一的 PWM 驱动框架，应用程序可以通过以下接口访问 PWM 设备：
+在 RT-Thread 中，PWM 被作为 **设备对象**（`struct rt_device` 的子类，类型为 `RT_Device_Class_PWM`）进行管理。开发者无需直接操作寄存器，只需通过 RT-Thread 提供的标准接口，即可完成 PWM 通道的配置、启用与禁用。
 
-- `rt_device_find()`：查找 PWM 设备句柄。
-- `rt_pwm_set()`：设置 PWM 的周期和脉冲宽度。
-- `rt_pwm_enable()`：使能 PWM 输出。
-- `rt_pwm_disable()`：禁用 PWM 输出。
+### 2. 操作接口
 
-### 2. 运行时调整 PWM 参数
+应用程序通过 RT-Thread 提供的 I/O 设备管理接口访问 PWM 设备，主要接口如下：
+
+- 查找 PWM 设备
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- 设置 PWM 周期和脉冲宽度
+
+```c
+rt_err_t rt_pwm_set(struct rt_device_pwm *device, int channel, rt_uint32_t period, rt_uint32_t pulse);
+```
+
+- 启用 PWM 通道
+
+```c
+rt_err_t rt_pwm_enable(struct rt_device_pwm *device, int channel);
+```
+
+- 禁用 PWM 通道
+
+```c
+rt_err_t rt_pwm_disable(struct rt_device_pwm *device, int channel);
+```
+
+### 3. 框架特点
+
+- **接口统一**：所有硬件 PWM 模块通过相同接口访问，简化上层开发。
+- **跨平台支持**：应用程序可在不同 MCU 平台间移植，无需修改 PWM 代码。
+- **灵活通道控制**：支持多通道独立配置、启用和禁用。
+- **精确控制**：可配置周期与脉冲宽度，实现高精度 PWM 输出。
+- **高扩展性**：可与定时器、DMA 等模块结合，实现复杂控制场景。
+
+### 4. 运行时调整 PWM 参数
 
 RA8 GPT 模块支持在运行时调整 PWM 的周期和占空比。可以使用以下函数进行调整：
 
@@ -131,64 +162,80 @@ rt_pwm_set(pwm_dev, PWM_DEV_CHANNEL, period, pulse);
 rt_pwm_enable(pwm_dev, PWM_DEV_CHANNEL)
 ```
 
-## 硬件定时器（hwtimer）实现
+**参考**：[RT-Thread PWM 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/pwm/pwm)
 
-硬件定时器用于实现高精度的定时控制，适用于周期性任务调度、事件计时等场景。
+## RT-Thread 硬件定时器框架简介
 
-### 1. RT-Thread hwtimer 驱动框架
+**RT-Thread 硬件定时器（Hardware Timer，简称 hwtimer）框架** 是 RT-Thread 设备驱动层提供的统一接口，用于管理 MCU 内部的定时器外设。该框架可实现高精度的定时控制，适用于周期性任务调度、事件计时、PWM 触发等场景。通过 hwtimer 框架，开发者可使用标准化接口完成硬件定时器的启停、模式配置、回调设置与时间读取等操作。
 
-RT-Thread 提供了统一的硬件定时器驱动框架，应用程序可以通过以下接口访问硬件定时器：
+### 1. 设备模型
 
-- `rt_device_find()`：查找硬件定时器设备句柄。
-- `rt_device_open()`：以读写方式打开定时器设备。
-- `rt_device_set_rx_indicate()`：设置超时回调函数。
-- `rt_device_control()`：控制定时器设备，可以设置定时模式(单次/周期)/计数频率，或者停止定时器。
-- ` rt_device_write()`：设置定时器超时值，定时器随即启动。
-- ` rt_device_read()`：获取定时器当前值。
-- `rt_device_close()`：关闭定时器设备。
+在 RT-Thread 中，硬件定时器被作为 **设备对象**（`struct rt_device` 的子类，类型为 `RT_Device_Class_Timer`）进行管理。开发者无需直接操作底层定时器寄存器，只需通过 RT-Thread 提供的标准设备接口，即可控制硬件定时器的运行。
 
-### 2. RA8 GPT 配置示例
+### 2. 操作接口
 
-以下是使用 RA8 GPT 模块实现硬件定时器的配置示例：
+应用程序通过 RT-Thread 的设备管理接口访问硬件定时器设备。常用接口如下：
+
+- 查找定时器设备
 
 ```c
-/* 获取定时器时钟频率 */
-rt_uint32_t freq = R_FSP_SystemClockHzGet(FSP_PRIV_CLOCK_PCLKD) >> g_timer1_cfg.source_div;
-/* 查找定时器设备 */
-rt_device_t hw_dev = rt_device_find("timer1");
-/* 打开定时器设备 */
-rt_err_t ret = rt_device_open(hw_dev, RT_DEVICE_OFLAG_RDWR);
-/* 设置超时回调函数 */
-rt_device_set_rx_indicate(hw_dev, timeout_cb);
-/* 设置时钟频率 */
-rt_device_control(hw_dev, HWTIMER_CTRL_FREQ_SET, &freq);
-/* 设置定时模式为周期定时 */
-rt_hwtimer_mode_t mode = HWTIMER_MODE_PERIOD;
-ret = rt_device_control(hw_dev, HWTIMER_CTRL_MODE_SET, &mode);
-/* 设置定时器超时时间 */
-timeout_s.sec = 1;  /* secend */
-timeout_s.usec = 0; /* microsecend */
-if (rt_device_write(hw_dev, 0, &timeout_s, sizeof(timeout_s)) != sizeof(timeout_s))
-{
-    rt_kprintf("set timeout value failed\n");
-    return -RT_ERROR;
-}
+rt_device_t rt_device_find(const char* name);
 ```
 
-在上述示例中，硬件定时器的超时时间被设置为1秒。
-
-### 3. 定时器中断处理
-
-RA8 GPT 模块支持定时器中断，可以在定时器溢出时触发中断服务程序。以下是定时器中断处理的配置示例：
+- 打开定时器设备（读写方式）
 
 ```c
-static rt_err_t timeout_cb(rt_device_t dev, rt_size_t size)
-{
-    rt_kprintf("this is hwtimer timeout callback fucntion!\n");
-    rt_kprintf("tick is :%d !\n", rt_tick_get());
-    return RT_EOK;
-}
+rt_err_t rt_device_open(rt_device_t dev, rt_uint16_t oflags);
 ```
+
+- 设置超时回调函数
+
+```c
+rt_err_t rt_device_set_rx_indicate(rt_device_t dev, rt_err_t (*rx_ind)(rt_device_t dev, rt_size_t size));
+```
+
+- 控制定时器（设置模式/频率/启动/停止）
+
+```c
+rt_err_t rt_device_control(rt_device_t dev, rt_uint8_t cmd, void* arg);
+```
+
+常用命令宏定义如下：
+
+```c
+#define HWTIMER_CTRL_FREQ_SET     (0x10)  /* 设置定时器计数频率 */
+#define HWTIMER_CTRL_MODE_SET     (0x11)  /* 设置定时器模式 */
+#define HWTIMER_CTRL_START        (0x12)  /* 启动定时器 */
+#define HWTIMER_CTRL_STOP         (0x13)  /* 停止定时器 */
+```
+
+- 设置定时器超时时间并启动
+
+```c
+rt_size_t rt_device_write(rt_device_t dev, rt_off_t pos, const void* buffer, rt_size_t size);
+```
+
+- 获取定时器当前计数值
+
+```c
+rt_size_t rt_device_read(rt_device_t dev, rt_off_t pos, void* buffer, rt_size_t size);
+```
+
+- 关闭定时器设备
+
+```c
+rt_err_t rt_device_close(rt_device_t dev);
+```
+
+### 3. 框架特点
+
+- **接口统一**：所有硬件定时器设备通过相同接口进行管理。
+- **高精度控制**：支持微秒级定时，满足高实时性任务需求。
+- **多模式支持**：支持单次定时（One-shot）与周期定时（Periodic）模式。
+- **事件回调机制**：支持超时中断回调函数注册。
+- **跨平台兼容**：不同 MCU 平台间移植时无需修改上层应用代码。
+
+**参考**：[RT-Thread HWTIMER 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/hwtimer/hwtimer)
 
 ## 硬件说明
 
@@ -295,7 +342,7 @@ struct rt_device_pwm *pwm_dev;      /* PWM设备句柄 */
 
 配置 PWM 周期以及占空比：
 
-```
+```c
 static int pwm_sample(int argc, char *argv[])
 {
     rt_uint32_t period, pulse;

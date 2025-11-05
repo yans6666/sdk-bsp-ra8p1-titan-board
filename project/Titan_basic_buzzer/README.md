@@ -52,6 +52,8 @@ For example, with `D = 50%`, `t_high = T_ns / 2`.
 
 > Note: `period_ns` and `pulse_ns` are usually 32-bit values. Avoid extremely low frequencies that result in very large periods; for very low frequencies, consider software timers or segmented playback.
 
+**Reference**: [RT-Thread PWM Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/pwm/pwm)
+
 ## Hardware Description
 
 The pin of the buzzer is PA07.
