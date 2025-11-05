@@ -28,6 +28,8 @@
      - `rt_pin_attach_irq(pin, mode, callback, args)`：注册中断回调
      - `rt_pin_irq_enable(pin, enable)`：使能/禁用中断
 
+**参考**：[RT-Thread PIN 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/pin/pin)
+
 > 使用 RT-Thread PIN 驱动，无需直接操作 NVIC 或 MCU 寄存器即可实现中断响应。
 
 ## 硬件说明

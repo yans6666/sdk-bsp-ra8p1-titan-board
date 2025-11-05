@@ -32,6 +32,8 @@ This way, developers don’t need to directly manipulate registers; GPIO control
 
 In this example, the LED pin is configured as **output mode**, and the software continuously toggles between high and low levels to make the LED blink.
 
+**Reference**: [RT-Thread PIN Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/pin/pin)
+
 ## Hardware Description
 
 ![image-20250905131018379](figures/image-20250905131018379.png)

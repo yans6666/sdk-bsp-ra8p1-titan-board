@@ -143,6 +143,10 @@ RA8 OSPI allows external memories to be **mapped into the MCU address space**, e
 
 ![image-20250924115414432](figures/image-20250924115414432.png)
 
+![image-20251031172234786](figures/image-20251031172234786.png)
+
+![image-20251031172918079](figures/image-20251031172918079.png)
+
 * HyperRAM pin configuration:
 
 ![image-20250814160618340](figures/image-20250814160618340.png)

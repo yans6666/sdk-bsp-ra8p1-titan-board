@@ -136,35 +136,115 @@ RA8 RTC consists of the following functional modules:
 
 ## RT-Thread RTC Driver Framework
 
-RT-Thread provides a unified **RTC driver framework** that abstracts the underlying hardware and provides standardized APIs for time management and alarm functions.
+**The RT-Thread RTC (Real-Time Clock) framework** is a unified interface provided by the RT-Thread device driver layer for managing RTC hardware across various MCUs. It abstracts the underlying RTC hardware into a standardized interface, enabling applications to manage date, time, timestamps, and alarms through a consistent API.
 
-### 1. Key Interfaces
+### 1. Device Model
 
-| Function / Macro                         | Description                                  |
-| ---------------------------------------- | -------------------------------------------- |
-|  rt_device_find("rtc")                   | Obtain RTC device handle                     |
-|  rt_device_open(dev, flags)              | Open RTC device and initialize hardware      |
-|  rt_device_control(dev, cmd, args)       | Configure RTC: set/get time, configure alarm |
-|  rt_device_read(dev, pos, buffer, size)  | Read current time or alarm status            |
-| rt_device_write(dev, pos, buffer, size)  | Write time or alarm value                    |
-| rt_device_close(dev)                     | Close RTC device                             |
+In RT-Thread, RTC is managed as a **device object** (a subclass of `struct rt_device`, type `RT_Device_Class_RTC`). Developers do not need to manipulate hardware registers directly. Time configuration, reading, and alarm control can be achieved using standard interfaces.
 
-### 2. Common `rt_device_control` Commands
+### 2. Operation Interfaces
 
-| Command                        | Description                         |
-| ------------------------------ | ----------------------------------- |
-|  RT_DEVICE_CTRL_RTC_SET_TIME   | Set current RTC time                |
-|  RT_DEVICE_CTRL_RTC_GET_TIME   | Get current RTC time                |
-|  RT_DEVICE_CTRL_RTC_SET_ALARM  | Set alarm time and enable interrupt |
-|  RT_DEVICE_CTRL_RTC_GET_ALARM  | Get configured alarm time           |
-|  RT_DEVICE_CTRL_RTC_ENABLE     | Enable RTC                          |
-|  RT_DEVICE_CTRL_RTC_DISABLE    | Disable RTC                         |
+Applications access the RTC through RT-Thread’s I/O device management interfaces. The main APIs are as follows:
 
-### 3. Alarm Handling
+- Find RTC device
 
-- Configure alarm via `RT_DEVICE_CTRL_RTC_SET_ALARM`
-- Enable interrupt; MCU is notified when alarm triggers
-- ISR can update flags, trigger events, or wake low-power MCU
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- Open RTC device
+
+```c
+rt_err_t rt_device_open(rt_device_t dev, rt_uint16_t oflags);
+```
+
+- Set date
+
+```c
+rt_err_t set_date(rt_uint32_t year, rt_uint32_t month, rt_uint32_t day);
+```
+
+- Set time
+
+```c
+rt_err_t set_time(rt_uint32_t hour, rt_uint32_t minute, rt_uint32_t second);
+```
+
+- Get current time
+
+The current timestamp (UTC) can be obtained using the C standard library:
+
+```c
+time_t time(time_t *t);
+```
+
+### 3. Alarm Feature
+
+The RTC framework supports an **alarm mechanism**, which can be used for timed wakeups, reminders, or periodic tasks.
+ Applications can operate alarms using the RT-Thread alarm component interfaces:
+
+- Create alarm
+
+```c
+rt_alarm_t rt_alarm_create(rt_alarm_callback_t callback, struct rt_alarm_setup *setup);
+```
+
+`rt_alarm_setup` structure definition:
+
+```c
+struct rt_alarm_setup
+{
+    rt_uint32_t flag;                /* alarm flag */
+    struct tm wktime;                /* alarm trigger time */
+};
+```
+
+Alarm modes available:
+
+```c
+#define RT_ALARM_ONESHOT       0x000   /* Trigger once */
+#define RT_ALARM_DAILY         0x100   /* Trigger daily */
+#define RT_ALARM_WEEKLY        0x200   /* Trigger weekly */
+#define RT_ALARM_MONTHLY       0x400   /* Trigger monthly */
+#define RT_ALARM_YEARLY        0x800   /* Trigger yearly */
+#define RT_ALARM_HOUR          0x1000  /* Trigger every hour */
+#define RT_ALARM_MINUTE        0x2000  /* Trigger every minute */
+#define RT_ALARM_SECOND        0x4000  /* Trigger every second */
+```
+
+- Start alarm
+
+```c
+rt_err_t rt_alarm_start(rt_alarm_t alarm);
+```
+
+- Stop alarm
+
+```c
+rt_err_t rt_alarm_stop(rt_alarm_t alarm);
+```
+
+- Delete alarm
+
+```c
+rt_err_t rt_alarm_delete(rt_alarm_t alarm);
+```
+
+- Control alarm
+
+```c
+rt_err_t rt_alarm_control(rt_alarm_t alarm, int cmd, void *arg);
+```
+
+### 4. Framework Features
+
+- **Unified Interface**: Provides a consistent interface to abstract RTC hardware differences.
+- **Cross-Platform Support**: Adaptable to various MCU RTC modules with seamless application portability.
+- **Alarm Mechanism**: Supports one-shot and periodic alarm modes.
+- **System Time Synchronization**: Compatible with POSIX time APIs for timestamp management.
+- **Low Power Support**: Enables wake-up from deep sleep and retains time during power loss.
+
+**Reference**: [RT-Thread RTC Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/rtc/rtc)
 
 ## Hardware Description
 

@@ -181,6 +181,70 @@ RA8 series MCUs integrate a high-performance **CANFD controller**, supporting IS
 - Real-time sensor data acquisition
 - High-speed data logging and distributed control
 
+## RT-Thread CAN Device Interface
+
+**The RT-Thread CAN (Controller Area Network) framework** is a unified interface provided by the RT-Thread device driver layer for managing CAN controller hardware modules on various MCUs. This framework abstracts the underlying CAN controller into a standard device interface, allowing applications to send, receive, and control CAN devices through a uniform API, supporting cross-platform CAN communication development.
+
+### 1. Device Model
+
+In RT-Thread, CAN devices are managed as **device objects** (subclass of `struct rt_device`, type `RT_Device_Class_CAN`). Developers do not need to manipulate hardware registers directly; all operations including initialization, transmission, reception, and device closure can be completed through the standard RT-Thread interface.
+
+### 2. Operation Interfaces
+
+Applications access CAN hardware through RT-Thread’s I/O device management interfaces. Key APIs include:
+
+- Find CAN device
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- Open CAN device
+
+```c
+rt_err_t rt_device_open(rt_device_t dev, rt_uint16_t oflags);
+```
+
+- Control CAN device
+
+```c
+rt_err_t rt_device_control(rt_device_t dev, rt_uint8_t cmd, void* arg);
+```
+
+- Send data
+
+```c
+rt_size_t rt_device_write(rt_device_t dev, rt_off_t pos, const void* buffer, rt_size_t size);
+```
+
+- Set receive callback
+
+```c
+rt_err_t rt_device_set_rx_indicate(rt_device_t dev, rt_err_t (*rx_ind)(rt_device_t dev, rt_size_t size));
+```
+
+- Receive data
+
+```c
+rt_size_t rt_device_read(rt_device_t dev, rt_off_t pos, void* buffer, rt_size_t size);
+```
+
+- Close CAN device
+
+```c
+rt_err_t rt_device_close(rt_device_t dev);
+```
+
+### 3. Framework Features
+
+- **Unified Device Abstraction**: All hardware CAN controllers are accessed through the same interface.
+- **Cross-Platform Support**: Applications can be ported across different MCU platforms without modifying CAN code.
+- **Efficient Communication**: Supports transmission, reception, and interrupt callback mechanisms for real-time data handling.
+- **Flexible Expansion**: Can be combined with multiple channels, filters, and message queues for complex communication scenarios.
+- **Safe and Reliable**: Hardware and software mechanisms ensure data integrity and reliable transmission.
+
+**Reference**: [RT-Thread CAN Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/can/can)
+
 ## Hardware Description
 
 ![image-20251015145921727](figures/image-20251015145921727.png)

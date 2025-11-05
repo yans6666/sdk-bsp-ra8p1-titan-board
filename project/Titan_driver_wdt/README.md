@@ -100,97 +100,62 @@ The RA8 WDT module contains:
 
 ## RT-Thread WDT Framework Instruction
 
-The **RT-Thread WDT framework** provides a unified abstraction for hardware watchdogs across different MCUs. Applications can use the same API regardless of underlying hardware.
+**RT-Thread WDT (Watchdog Timer) Framework** is a unified interface provided by the RT-Thread device driver layer for managing hardware watchdog modules across different MCUs.
+ This framework abstracts the hardware WDT functionality into a standardized device interface, allowing applications to use a consistent API across platforms to implement system self-recovery mechanisms.
 
 ### 1. Device Model
 
-In RT-Thread, the WDT is managed as a **device object** (`struct rt_device`, type `RT_Device_Class_WDT`).
- Developers interact via high-level device APIs, without touching registers directly.
+In RT-Thread, the WDT is managed as a **device object** (a subclass of `struct rt_device`, with type `RT_Device_Class_WDT`).
+ Developers don’t need to deal with low-level hardware register operations — all watchdog functionalities can be implemented through the standard RT-Thread device interfaces.
 
 ### 2. Operation Interfaces
 
-Applications interact with WDT via the following APIs:
+Applications access the watchdog hardware using RT-Thread’s I/O device management interfaces as shown below:
 
-| Function              | Description                    |
-| --------------------- | ------------------------------ |
-|  rt_device_find()     | Find a watchdog device by name |
-|  rt_device_init()     | Initialize the watchdog device |
-|  rt_device_control()  | Control watchdog settings      |
-|  rt_device_close()    | Close the watchdog device      |
-
-### 3. Framework Features
-
-- **Unified abstraction** for all WDT hardware
-- **Cross-platform support** with portable API
-- **Timeout protection** via configurable expiration time
-- **Modes**: Reset mode and interrupt mode
-- **Reliable safety** through hardware-enforced resets
-
-### 4. Usage Workflow
-
-* **Find WDT device**
+- **Find the Watchdog Device**
 
 ```c
-#define WDT_DEVICE_NAME    "wdt"    /* Watchdog device name */
-
-static rt_device_t wdg_dev;         /* Watchdog device handle */
-/* Find the watchdog device by name and get its handle */
-wdg_dev = rt_device_find(WDT_DEVICE_NAME);
+rt_device_t rt_device_find(const char* name);
 ```
 
-* **Initialize the watchdog**
+- **Initialize the Watchdog**
 
 ```c
-/* Initialize the device */
-rt_device_init(wdg_dev);
+rt_err_t rt_device_init(rt_device_t dev);
 ```
 
-* **Control the watchdog**
-
-The command control codes are defined as follows:
+- **Control the Watchdog**
 
 ```c
-#define RT_DEVICE_CTRL_WDT_GET_TIMEOUT    (1) /* Get timeout value */
-#define RT_DEVICE_CTRL_WDT_SET_TIMEOUT    (2) /* Set timeout value */
-#define RT_DEVICE_CTRL_WDT_GET_TIMELEFT   (3) /* Get remaining time */
+rt_err_t rt_device_control(rt_device_t dev, rt_uint8_t cmd, void* arg);
+```
+
+Available watchdog control commands are defined as follows:
+
+```c
+#define RT_DEVICE_CTRL_WDT_GET_TIMEOUT    (1) /* Get the timeout period */
+#define RT_DEVICE_CTRL_WDT_SET_TIMEOUT    (2) /* Set the timeout period */
+#define RT_DEVICE_CTRL_WDT_GET_TIMELEFT   (3) /* Get the remaining time before reset */
 #define RT_DEVICE_CTRL_WDT_KEEPALIVE      (4) /* Feed the watchdog */
 #define RT_DEVICE_CTRL_WDT_START          (5) /* Start the watchdog */
 #define RT_DEVICE_CTRL_WDT_STOP           (6) /* Stop the watchdog */
 ```
 
-Example of setting the watchdog timeout value:
+- **Close the Watchdog Device**
 
 ```c
-#define WDT_DEVICE_NAME    "wdt"    /* Watchdog device name */
-
-rt_uint32_t timeout = 1;       /* Timeout value in seconds */
-static rt_device_t wdg_dev;    /* Watchdog device handle */
-/* Find the watchdog device by name and get its handle */
-wdg_dev = rt_device_find(WDT_DEVICE_NAME);
-/* Initialize the device */
-rt_device_init(wdg_dev);
-
-/* Set the watchdog timeout value */
-rt_device_control(wdg_dev, RT_DEVICE_CTRL_WDT_SET_TIMEOUT, &timeout);
-/* Set the idle thread callback function */
-rt_thread_idle_sethook(idle_hook);
+rt_err_t rt_device_close(rt_device_t dev);
 ```
 
-Example of feeding the watchdog in the idle thread hook function:
+### 3. Framework Features
 
-```c
-static void idle_hook(void)
-{
-    /* Feed the watchdog in the idle thread callback function */
-    rt_device_control(wdg_dev, RT_DEVICE_CTRL_WDT_KEEPALIVE, NULL);
-}
-```
+- **Unified Device Abstraction**: All hardware WDTs are exposed to upper layers through the same device interface.
+- **Cross-Platform Support**: Applications can be ported across MCU platforms without changing WDT-related code.
+- **Timeout Protection**: Supports configurable timeout periods; if the system fails to feed the watchdog, it triggers an interrupt or reset.
+- **Flexible Operating Modes**: Supports both **interrupt mode** and **reset mode** to meet various application requirements.
+- **High Reliability**: Ensures system safety by using hardware-enforced reset mechanisms to recover from system hangs.
 
-**Close the watchdog**
-
-```c
-rt_device_close(wdg_dev);
-```
+> **Reference**: [RT-Thread WATCHDOG Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/watchdog/watchdog)
 
 ## Hardware Description
 
@@ -217,16 +182,6 @@ None
 The sample program is located at `project/Titan_driver_wdt/src/hal_entry.c`.
 
 ```c
-/*
- * Copyright (c) 2006-2024, RT-Thread Development Team
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Change Logs:
- * Date           Author        Notes
- * 2024-03-11     kurisaw       first version
- */
-
 #include <rtthread.h>
 #include "hal_data.h"
 #include <rtdevice.h>
@@ -325,7 +280,3 @@ After compilation, connect the USB-DBG interface of the development board to the
 Enter the `wdt_sample` command at the terminal to run the WDT test program. After feeding the dog 10 times, stop feeding the dog to simulate an abnormal program situation.
 
 ![PixPin_2025-07-28_10-11-00](figures/PixPin_2025-07-28_10-11-00.png)
-
-## References
-
-Device and Driver: [WDT Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/watchdog/watchdog)

@@ -190,6 +190,70 @@ RA8 系列 MCU 集成高性能 **CANFD 控制器**，支持 ISO CAN 2.0A/B 及 C
 - 实时传感器数据采集
 - 高速数据日志记录和分布式控制
 
+## RT-Thread CAN 设备接口
+
+**RT-Thread CAN（Controller Area Network）框架** 是 RT-Thread 设备驱动层提供的统一接口，用于管理各类 MCU 的 CAN 控制器硬件模块。该框架将底层 CAN 控制器抽象为标准设备接口，使应用程序能够通过统一 API 实现数据发送、接收与设备控制，从而支持跨平台的 CAN 通信开发。
+
+### 1. 设备模型
+
+在 RT-Thread 中，CAN 被作为 **设备对象**（`struct rt_device` 的子类，类型为 `RT_Device_Class_CAN`）进行管理。开发者无需直接操作底层寄存器，通过标准接口即可完成 CAN 设备的初始化、发送、接收和关闭操作。
+
+### 2. 操作接口
+
+应用程序通过 RT-Thread 提供的 I/O 设备管理接口访问 CAN 硬件，相关接口如下：
+
+- 查找 CAN 设备
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- 打开 CAN 设备
+
+```c
+rt_err_t rt_device_open(rt_device_t dev, rt_uint16_t oflags);
+```
+
+- 控制 CAN 设备
+
+```c
+rt_err_t rt_device_control(rt_device_t dev, rt_uint8_t cmd, void* arg);
+```
+
+- 发送数据
+
+```c
+rt_size_t rt_device_write(rt_device_t dev, rt_off_t pos, const void* buffer, rt_size_t size);
+```
+
+- 设置接收回调函数
+
+```c
+rt_err_t rt_device_set_rx_indicate(rt_device_t dev, rt_err_t (*rx_ind)(rt_device_t dev, rt_size_t size));
+```
+
+- 接收数据
+
+```c
+rt_size_t rt_device_read(rt_device_t dev, rt_off_t pos, void* buffer, rt_size_t size);
+```
+
+- 关闭 CAN 设备
+
+```c
+rt_err_t rt_device_close(rt_device_t dev);
+```
+
+### 3. 框架特点
+
+- **设备抽象统一**：所有硬件 CAN 控制器通过相同接口访问。
+- **跨平台支持**：应用程序可在不同 MCU 平台间移植，无需修改 CAN 操作代码。
+- **高效通信**：支持发送、接收与中断回调机制，实现实时数据处理。
+- **灵活扩展**：可结合多通道、过滤器和消息队列满足复杂通信需求。
+- **安全可靠**：通过硬件和软件结合的方式保证数据传输的完整性和可靠性。
+
+**参考**：[RT-Thread CAN 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/can/can)
+
 ## 硬件说明
 
 ![image-20251015145921727](figures/image-20251015145921727.png)

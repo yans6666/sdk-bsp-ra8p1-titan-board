@@ -1,4 +1,4 @@
-# LVGL 示例说明
+# RGB565 LVGL 示例说明
 
 **中文** | [**English**](./README.md)
 

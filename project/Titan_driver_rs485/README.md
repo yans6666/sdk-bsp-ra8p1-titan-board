@@ -120,20 +120,86 @@ The RA8 series MCU features a high-performance UART peripheral, supporting multi
    - Error interrupts: frame, overflow, parity
    - Transmission complete interrupt: can trigger RS485 DE auto-switch
 
-## RT-Thread UART Driver Framework
+## RT-Thread UART v2 Driver Framework
 
-RT-Thread provides a unified **serial driver framework** that supports standard UART and RS485 communication.
+**The RT-Thread UART v2 (Universal Asynchronous Receiver/Transmitter) framework** is a unified interface provided by the RT-Thread device driver layer to manage serial communication peripherals across various MCUs. Compared to the legacy UART framework, UART v2 introduces standardized APIs, enhanced interrupt handling, and flexible callback mechanisms, enabling unified and portable serial communication for applications.
 
-### Key Interfaces
+### 1. Device Model
 
-| Function / Macro                          | Purpose                                           |
-| ----------------------------------------- | ------------------------------------------------- |
-| `rt_device_find("uartX")`                 | Find UART device handle                           |
-| `rt_device_open(dev, flags)`              | Open device and initialize hardware               |
-| `rt_device_control(dev, cmd, args)`       | Control UART settings (baud rate, mode, RS485 DE) |
-| `rt_device_write(dev, pos, buffer, size)` | Send data                                         |
-| `rt_device_read(dev, pos, buffer, size)`  | Receive data                                      |
-| `rt_device_close(dev)`                    | Close UART device                                 |
+In RT-Thread, UARTs are managed as **device objects** (subclass of `struct rt_device`, type `RT_Device_Class_Char`). Developers do not need to operate hardware registers directly. Instead, UART initialization, configuration, transmission, reception, and callback registration are achieved through standardized device APIs.
+
+### 2. Operation Interfaces
+
+Applications interact with UART hardware through RT-Thread’s I/O device management APIs as shown below:
+
+- Find UART device
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- Open UART device
+
+```c
+rt_err_t rt_device_open(rt_device_t dev, rt_uint16_t oflags);
+```
+
+- Control UART device
+
+Through the control interface, applications can configure UART parameters such as baud rate, data bits, parity, stop bits, and buffer size:
+
+```c
+rt_err_t rt_device_control(rt_device_t dev, rt_uint8_t cmd, void* arg);
+```
+
+- Send data
+
+```c
+rt_size_t rt_device_write(rt_device_t dev, rt_off_t pos, const void* buffer, rt_size_t size);
+```
+
+- Set TX complete callback
+
+```c
+rt_err_t rt_device_set_tx_complete(rt_device_t dev, rt_err_t (*tx_done)(rt_device_t dev, void* buffer));
+```
+
+- Set RX callback
+
+```c
+rt_err_t rt_device_set_rx_indicate(rt_device_t dev, rt_err_t (*rx_ind)(rt_device_t dev, rt_size_t size));
+```
+
+- Read received data
+
+```c
+rt_size_t rt_device_read(rt_device_t dev, rt_off_t pos, void* buffer, rt_size_t size);
+```
+
+- Close UART device
+
+```c
+rt_err_t rt_device_close(rt_device_t dev);
+```
+
+Common control commands used with `rt_device_control()` include:
+
+```c
+#define RT_DEVICE_CTRL_CONFIG        (0x10)   /* Configure UART parameters */
+#define RT_DEVICE_CTRL_SET_INT       (0x11)   /* Enable interrupt */
+#define RT_DEVICE_CTRL_CLR_INT       (0x12)   /* Disable interrupt */
+#define RT_DEVICE_CTRL_CUSTOM_CMD    (0x13)   /* Custom control command */
+```
+
+### 3. Framework Features
+
+- **Unified API design**: Standardized read, write, and control interfaces for all UART devices.
+- **Event callback mechanism**: Supports both RX and TX callbacks for asynchronous communication.
+- **Rich configuration options**: Flexible settings for baud rate, parity, data bits, and stop bits.
+- **Interrupt & DMA support**: Drivers can implement interrupt-driven or DMA-based data transfer.
+- **Cross-platform portability**: The same UART application code runs on multiple MCU platforms.
+
+**Reference**: [RT-Thread UART Device V2](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/uart/uart_v2)
 
 ## Hardware Description
 
@@ -158,6 +224,127 @@ RT-Thread provides a unified **serial driver framework** that supports standard 
 * Enable and configure RS485.
 
 ![image-20250815105025928](figures/image-20250815105025928.png)
+
+## Example Code Description
+
+```c
+#define RS485_OUT       rt_pin_write((rt_base_t)RS485_DE_PIN, PIN_HIGH)
+#define RS485_IN        rt_pin_write((rt_base_t)RS485_DE_PIN, PIN_LOW)
+
+static rt_device_t rs485_serial = RT_NULL;
+static struct rt_semaphore rs485_rx_sem;
+static struct rt_ringbuffer rs485_rx_rb;
+static rt_uint8_t rs485_rx_buffer[RS485_RX_BUFFER_SIZE];
+
+/* uart receive data callback function */
+static rt_err_t rs485_input(rt_device_t dev, rt_size_t size)
+{
+    if (size > 0)
+    {
+        rt_uint8_t ch;
+        while (rt_device_read(dev, 0, &ch, 1) == 1)
+        {
+            rt_ringbuffer_put_force(&rs485_rx_rb, &ch, 1);
+        }
+        rt_sem_release(&rs485_rx_sem);
+    }
+    return RT_EOK;
+}
+
+/* send data */
+int rs485_send_data(const void *tbuf, rt_uint16_t t_len)
+{
+    RT_ASSERT(tbuf != RT_NULL);
+
+    /* change rs485 mode to transmit */
+    RS485_OUT;
+
+    /* send data */
+    rt_size_t sent = rt_device_write(rs485_serial, 0, tbuf, t_len);
+
+    if (sent != t_len)
+    {
+        /* Transmission failed, switch back to receive mode */
+        RS485_IN;
+        return -RT_ERROR;
+    }
+
+    /* Note: We don't switch back to receive mode here -
+       that will be done in the tx_complete callback (rs485_output) */
+
+    LOG_I("send==>>");
+    for (int i = 0; i < t_len; i++)
+    {
+        LOG_I("   %d:   %c ", i, ((rt_uint8_t *)tbuf)[i]);
+    }
+    RS485_IN;
+
+    return RT_EOK;
+}
+
+static void rs485_thread_entry(void *parameter)
+{
+    rt_uint8_t ch;
+    rt_size_t length;
+
+    while (1)
+    {
+        /* Wait for data */
+        rt_sem_take(&rs485_rx_sem, RT_WAITING_FOREVER);
+
+        /* Process all available data in the ring buffer */
+        while (length = rt_ringbuffer_get(&rs485_rx_rb, &ch, 1))
+        {
+            if (length == 1)
+            {
+                LOG_I("recv data:%c", ch);
+            }
+        }
+    }
+}
+
+int rs485_init(void)
+{
+    /* Initialize ring buffer */
+    rt_ringbuffer_init(&rs485_rx_rb, rs485_rx_buffer, RS485_RX_BUFFER_SIZE);
+
+    /* find uart device */
+    rs485_serial = rt_device_find(RS485_UART_DEVICE_NAME);
+    if (!rs485_serial)
+    {
+        LOG_E("find %s failed!", RS485_UART_DEVICE_NAME);
+        return -RT_ERROR;
+    }
+
+    /* Open device in interrupt mode with DMA support if available */
+    rt_device_open(rs485_serial, RT_DEVICE_FLAG_INT_RX | RT_DEVICE_FLAG_DMA_RX);
+
+    /* set receive data callback function */
+    rt_device_set_rx_indicate(rs485_serial, rs485_input);
+
+    /* Initialize RTS pin */
+    rt_pin_mode((rt_base_t)RS485_DE_PIN, PIN_MODE_OUTPUT);
+    RS485_IN;
+
+    /* Initialize semaphore */
+    rt_sem_init(&rs485_rx_sem, "rs485_rx_sem", 0, RT_IPC_FLAG_FIFO);
+
+    rt_thread_t thread = rt_thread_create("rs485", rs485_thread_entry, RT_NULL,
+                                        1024, 25, 10);
+
+    if (thread != RT_NULL)
+    {
+        rt_thread_startup(thread);
+    }
+    else
+    {
+        return -RT_ERROR;
+    }
+
+    return RT_EOK;
+}
+INIT_DEVICE_EXPORT(rs485_init);
+```
 
 ## Build & Download
 

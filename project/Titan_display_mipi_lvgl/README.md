@@ -1,4 +1,4 @@
-# LVGL Usage Instructions
+# MIPI DSI LVGL Usage Instructions
 
 **English** | [**Chinese**](./README_zh.md)
 
@@ -41,6 +41,10 @@ The following figure shows the MIPI DSI/CSI interface on the Titan Board. To con
 
 ![image-20251017171808172](figures/image-20251017171808172.png)
 
+In this example, a Dupont wire is required to connect the **BL** pin on the display adapter board to the **PB07** pin (the GPIO pin used to provide backlight can be changed as needed).
+
+![image-20251105125023597](figures/image-20251105125023597.png)
+
 ## FSP Configuration
 
 ### HyperRAM 配置
@@ -52,6 +56,10 @@ The following figure shows the MIPI DSI/CSI interface on the Titan Board. To con
 * Configure `r_ospi_b` stack：
 
 ![image-20250924115414432](figures/image-20250924115414432.png)
+
+![image-20251031172229786](figures/image-20251031172229786.png)
+
+![image-20251031172918079](figures/image-20251031172918079.png)
 
 * HyperRAM pin configuration:
 

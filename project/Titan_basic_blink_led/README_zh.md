@@ -32,21 +32,23 @@ RT-Thread 提供了 **PIN 设备驱动框架**，通过统一的接口屏蔽底�
 
 在本示例中，LED 引脚被配置为 **输出模式**，软件循环输出高低电平，从而实现 LED 闪烁。
 
+**参考**：[RT-Thread PIN 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/pin/pin)
+
 ## 硬件说明
 
 ![image-20250905131018379](figures/image-20250905131018379.png)
 
 <img src="figures/image-20250905131050345.png" alt="image-20250905131050345" style="zoom:150%;" />
 
-如上图所示，Titan Board 提供三个用户LED，分别为LED_R（RED）、LED_B（BLUE）、LED_G（GREEN），其中 LED_B 对应引脚P012。单片机引脚输出低电平即可点亮LED ，输出高电平则会熄灭LED。
+如上图所示，Titan Board 提供三个用户 LED，分别为 LED_R（RED）、LED_B（BLUE）、LED_G（GREEN），其中 LED_B 对应引脚 P012。单片机引脚输出低电平即可点亮 LED ，输出高电平则会熄灭 LED。
 
-LED在开发板中的位置如下图所示： 
+LED 在开发板中的位置如下图所示： 
 
 ![image-20250905131349156](figures/image-20250905131349156.png)
 
 ## 软件说明
 
-本例程的源码位于`/project/Titan_basic_blink_led`。RGB LED 对应的单片机引脚定义及 RGB 变换源码可以通过查阅 `src/hal_entry.c`中。
+本例程的源码位于`/project/Titan_basic_blink_led`。RGB LED 对应的单片机引脚定义及 RGB 变换源码可以查阅 `src/hal_entry.c`。
 
 ```c
 /* 配置 LED 灯引脚 */

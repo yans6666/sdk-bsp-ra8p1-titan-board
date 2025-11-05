@@ -104,26 +104,57 @@ The Renesas RA8 series microcontrollers integrate a high-performance **General P
 - **Counting Direction**: Supports up-counting, down-counting, or up/down counting
 - **High Resolution**: Supports high-resolution PWM waveform generation, suitable for precision control applications
 
-## PWM Output Implementation
+## RT-Thread PWM Framework Introduction
 
-**Pulse Width Modulation (PWM)** is a common technique for simulating analog signals by adjusting the duty cycle of digital pulses to control the average output voltage.
+**The RT-Thread PWM (Pulse Width Modulation) framework** is a unified interface provided by the RT-Thread device driver layer to manage PWM hardware modules across various MCUs. This framework abstracts the underlying PWM functionality into a standardized device interface, allowing applications to configure period and pulse width through a uniform API and achieve cross-platform PWM control.
 
-### 1. RT-Thread PWM Driver Framework
+### 1. Device Model
 
-RT-Thread provides a unified PWM driver framework. Applications can access PWM devices via the following APIs:
+In RT-Thread, PWM is managed as a **device object** (subclass of `struct rt_device`, type `RT_Device_Class_PWM`). Developers do not need to manipulate hardware registers directly. PWM channel configuration, enabling, and disabling can all be performed via the standard RT-Thread device interface.
 
-- `rt_device_find()` – Find the PWM device handle
-- `rt_pwm_set()` – Configure PWM period and pulse width
-- `rt_pwm_enable()` – Enable PWM output
-- `rt_pwm_disable()` – Disable PWM output
+### 2. Operation Interfaces
 
-### 2. Runtime PWM Parameter Adjustment
+Applications access PWM devices through RT-Thread’s I/O device management interfaces. Key APIs include:
+
+- Find PWM device
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- Set PWM period and pulse width
+
+```c
+rt_err_t rt_pwm_set(struct rt_device_pwm *device, int channel, rt_uint32_t period, rt_uint32_t pulse);
+```
+
+- Enable PWM channel
+
+```c
+rt_err_t rt_pwm_enable(struct rt_device_pwm *device, int channel);
+```
+
+- Disable PWM channel
+
+```c
+rt_err_t rt_pwm_disable(struct rt_device_pwm *device, int channel);
+```
+
+### 3. Framework Features
+
+- **Unified Interface**: All PWM hardware modules are accessed through the same interface, simplifying application development.
+- **Cross-Platform Support**: Applications can be ported across different MCU platforms without modifying PWM code.
+- **Flexible Channel Control**: Supports independent configuration, enabling, and disabling of multiple channels.
+- **Accurate Control**: Configurable period and pulse width for high-precision PWM output.
+- **High Extensibility**: Can be combined with timers, DMA, and other modules for complex control scenarios.
+
+### 4. Runtime PWM Parameter Adjustment
 
 The RA8 GPT module supports runtime adjustment of PWM period and duty cycle.
 
 Example: Set PWM period to `500000` and duty cycle to `70%`:
 
-```
+```c
 #define PWM_DEV_NAME    "pwm12"
 #define PWM_DEV_CHANNEL 0
 
@@ -136,74 +167,80 @@ rt_pwm_set(pwm_dev, PWM_DEV_CHANNEL, period, pulse);
 rt_pwm_enable(pwm_dev, PWM_DEV_CHANNEL);
 ```
 
-------
+**Reference**: [RT-Thread PWM Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/pwm/pwm)
 
-## Hardware Timer (hwtimer) Implementation
+## RT-Thread Hardware Timer Framework Introduction
 
-A hardware timer provides high-precision timing control and is suitable for periodic task scheduling, event timing, etc.
+**The RT-Thread Hardware Timer (hwtimer) framework** provides a unified driver interface for MCU hardware timers. It enables high-precision timing control, making it suitable for periodic task scheduling, event timing, and PWM triggering. Through the hwtimer framework, developers can control timer start/stop, mode configuration, callback setup, and value reading via standardized APIs.
 
-### 1. RT-Thread hwtimer Driver Framework
+### 1. Device Model
 
-RT-Thread provides a unified hardware timer framework with the following APIs:
+In RT-Thread, hardware timers are managed as **device objects** (a subclass of `struct rt_device`, type `RT_Device_Class_Timer`). Developers don’t need to access hardware registers directly—timer control is done via RT-Thread’s unified device interface.
 
-- `rt_device_find()` – Find timer device handle
-- `rt_device_open()` – Open timer device
-- `rt_device_set_rx_indicate()` – Set timeout callback function
-- `rt_device_control()` – Configure timer mode (one-shot/periodic), counting frequency, or stop timer
-- `rt_device_write()` – Set timeout value and start the timer
-- `rt_device_read()` – Get current timer value
-- `rt_device_close()` – Close the timer device
+### 2. Operation Interfaces
 
-### 2. RA8 GPT Configuration Example
+Applications access hwtimer devices via the RT-Thread device management API. Common interfaces include:
 
-```
-/* Get timer clock frequency */
-rt_uint32_t freq = R_FSP_SystemClockHzGet(FSP_PRIV_CLOCK_PCLKD) >> g_timer1_cfg.source_div;
+- Find timer device
 
-/* Find timer device */
-rt_device_t hw_dev = rt_device_find("timer1");
-
-/* Open timer device */
-rt_err_t ret = rt_device_open(hw_dev, RT_DEVICE_OFLAG_RDWR);
-
-/* Set timeout callback */
-rt_device_set_rx_indicate(hw_dev, timeout_cb);
-
-/* Configure frequency */
-rt_device_control(hw_dev, HWTIMER_CTRL_FREQ_SET, &freq);
-
-/* Set timer mode to periodic */
-rt_hwtimer_mode_t mode = HWTIMER_MODE_PERIOD;
-ret = rt_device_control(hw_dev, HWTIMER_CTRL_MODE_SET, &mode);
-
-/* Set timeout to 1 second */
-struct rt_hwtimer_time timeout_s;
-timeout_s.sec  = 1;  
-timeout_s.usec = 0;  
-
-if (rt_device_write(hw_dev, 0, &timeout_s, sizeof(timeout_s)) != sizeof(timeout_s))
-{
-    rt_kprintf("set timeout value failed\n");
-    return -RT_ERROR;
-}
+```c
+rt_device_t rt_device_find(const char* name);
 ```
 
-------
+- Open timer device (read/write mode)
 
-### 3. Timer Interrupt Handling
-
-The RA8 GPT module supports timer interrupts, which can trigger an interrupt service routine when the timer overflows.
-
-Example timeout callback:
-
+```c
+rt_err_t rt_device_open(rt_device_t dev, rt_uint16_t oflags);
 ```
-static rt_err_t timeout_cb(rt_device_t dev, rt_size_t size)
-{
-    rt_kprintf("This is hwtimer timeout callback function!\n");
-    rt_kprintf("tick is : %d !\n", rt_tick_get());
-    return RT_EOK;
-}
+
+- Set timeout callback
+
+```c
+rt_err_t rt_device_set_rx_indicate(rt_device_t dev, rt_err_t (*rx_ind)(rt_device_t dev, rt_size_t size));
 ```
+
+- Control timer (mode/frequency/start/stop)
+
+```c
+rt_err_t rt_device_control(rt_device_t dev, rt_uint8_t cmd, void* arg);
+```
+
+Common command macros:
+
+```c
+#define HWTIMER_CTRL_FREQ_SET     (0x10)  /* Set timer frequency */
+#define HWTIMER_CTRL_MODE_SET     (0x11)  /* Set timer mode */
+#define HWTIMER_CTRL_START        (0x12)  /* Start timer */
+#define HWTIMER_CTRL_STOP         (0x13)  /* Stop timer */
+```
+
+- Set timeout value and start timer
+
+```c
+rt_size_t rt_device_write(rt_device_t dev, rt_off_t pos, const void* buffer, rt_size_t size);
+```
+
+- Get current timer value
+
+```c
+rt_size_t rt_device_read(rt_device_t dev, rt_off_t pos, void* buffer, rt_size_t size);
+```
+
+- Close timer device
+
+```c
+rt_err_t rt_device_close(rt_device_t dev);
+```
+
+### 3. Framework Features
+
+- **Unified Interface**: All hardware timers share the same API for control and configuration.
+- **High Precision**: Supports microsecond-level timing for real-time applications.
+- **Multiple Modes**: Supports both one-shot and periodic timer modes.
+- **Callback Mechanism**: Timeout events can trigger user-defined callback functions.
+- **Cross-Platform Compatibility**: Applications can be easily ported across MCU platforms.
+
+**Reference**: [RT-Thread HWTIMER Device](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/hwtimer/hwtimer)
 
 ## Hardware Description
 

@@ -138,6 +138,101 @@ RA8 系列 SPI（r_spi_b）内部主要由以下子模块组成：
    - 短数据传输：由中断驱动
    - 大数据传输：由 DMA/DTC 自动完成，CPU 仅需配置起始参数
 
+##  RT-Thread SPI 驱动框架
+
+**RT-Thread SPI（Serial Peripheral Interface）框架** 是 RT-Thread 设备驱动层提供的统一接口，用于管理各类 MCU 的 SPI 总线外设。该框架对底层硬件寄存器进行了统一抽象，使应用层能够通过标准化 API 与多种 SPI 从设备进行数据通信，实现高效、可靠且跨平台的 SPI 访问。
+
+### 1. 设备模型
+
+在 RT-Thread 中，SPI 被划分为 **总线（Bus）** 和 **设备（Device）** 两个层次。SPI 设备作为 **设备对象**（`struct rt_device` 的子类，类型为 `RT_Device_Class_SPIBUS` 或 `RT_Device_Class_SPIDevice`）进行管理。开发者无需直接操作寄存器，只需通过 RT-Thread 提供的 SPI 接口函数，即可完成数据发送、接收与片选控制。
+
+### 2. 操作接口
+
+应用程序可通过 RT-Thread 提供的 I/O 设备管理与 SPI 接口访问 SPI 设备，常用接口如下：
+
+- 查找 SPI 设备
+
+```c
+rt_device_t rt_device_find(const char* name);
+```
+
+- 自定义传输消息序列
+
+```c
+struct rt_spi_message *rt_spi_transfer_message(struct rt_spi_device *device,
+                                               struct rt_spi_message *message);
+```
+
+该函数可传输一连串消息，用户可自定义每个待传输 `message` 结构体的参数，以灵活控制片选时序与传输方式。
+ `struct rt_spi_message` 定义如下：
+
+```c
+struct rt_spi_message
+{
+    const void *send_buf;           /* 发送缓冲区指针 */
+    void *recv_buf;                 /* 接收缓冲区指针 */
+    rt_size_t length;               /* 发送 / 接收 数据字节数 */
+    struct rt_spi_message *next;    /* 指向下一条消息 */
+    unsigned cs_take    : 1;        /* 片选选中 */
+    unsigned cs_release : 1;        /* 释放片选 */
+};
+```
+
+- 传输一次数据
+
+```c
+rt_size_t rt_spi_transfer(struct rt_spi_device *device,
+                          const void           *send_buf,
+                          void                 *recv_buf,
+                          rt_size_t             length);
+```
+
+- 仅发送一次数据（忽略接收）
+
+```c
+rt_size_t rt_spi_send(struct rt_spi_device *device,
+                      const void           *send_buf,
+                      rt_size_t             length);
+```
+
+- 仅接收一次数据
+
+```c
+rt_size_t rt_spi_recv(struct rt_spi_device *device,
+                      void                 *recv_buf,
+                      rt_size_t             length);
+```
+
+- 连续发送两次数据（中间片选保持）
+
+```c
+rt_err_t rt_spi_send_then_send(struct rt_spi_device *device,
+                               const void           *send_buf1,
+                               rt_size_t             send_length1,
+                               const void           *send_buf2,
+                               rt_size_t             send_length2);
+```
+
+- 先发送后接收数据（中间片选保持）
+
+```c
+rt_err_t rt_spi_send_then_recv(struct rt_spi_device *device,
+                               const void           *send_buf,
+                               rt_size_t             send_length,
+                               void                 *recv_buf,
+                               rt_size_t             recv_length);
+```
+
+### 3. 框架特点
+
+- **设备抽象统一**：支持主从模式下的标准接口调用。
+- **跨平台支持**：应用层可在不同 MCU 平台上直接移植。
+- **灵活片选控制**：支持单次、连续、组合传输方式。
+- **消息队列机制**：通过 `rt_spi_message` 实现复杂传输链路控制。
+- **可扩展性强**：可结合 DMA、RT-Thread IPC 等机制提升性能。
+
+**参考**：[RT-Thread SPI 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/spi/spi)
+
 ## 硬件说明
 
 Titan Board 使用 SPI0 与 BMI088 陀螺仪通信。

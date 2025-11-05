@@ -1,4 +1,4 @@
-# LVGL Usage Instructions
+# RGB565 LVGL Usage Instructions
 
 **English** | [**Chinese**](./README_zh.md)
 

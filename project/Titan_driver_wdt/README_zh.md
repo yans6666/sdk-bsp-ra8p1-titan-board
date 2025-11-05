@@ -122,43 +122,25 @@ RA8 WDT 模块主要包含以下子模块：
 
 应用程序通过 RT-Thread 提供的 I/O 设备管理接口来访问看门狗硬件，相关接口如下所示：
 
-| **函数**            | **描述**                                   |
-| ------------------- | ------------------------------------------ |
-| rt_device_find()    | 根据看门狗设备设备名称查找设备获取设备句柄 |
-| rt_device_init()    | 初始化看门狗设备                           |
-| rt_device_control() | 控制看门狗设备                             |
-| rt_device_close()   | 关闭看门狗设备                             |
+* 查找看门狗
 
-### 3. 框架特点
-
-- **设备抽象统一**：所有硬件 WDT 通过相同的设备接口暴露给上层应用。
-- **跨平台支持**：应用程序可在不同 MCU 平台间移植而无需修改 WDT 相关代码。
-- **超时保护**：支持配置超时时间，系统未及时喂狗则触发中断或复位。
-- **运行模式可选**：支持 **中断模式** 和 **复位模式**，满足不同场景需求。
-- **安全可靠**：结合硬件 WDT 提供强制复位机制，防止系统异常卡死。
-
-### 4. 使用流程
-
-* **查找 wdt 设备**
-
-``` C
-#define WDT_DEVICE_NAME    "wdt"    /* 看门狗设备名称 */
-
-static rt_device_t wdg_dev;         /* 看门狗设备句柄 */
-/* 根据设备名称查找看门狗设备，获取设备句柄 */
-wdg_dev = rt_device_find(WDT_DEVICE_NAME);
+```c
+rt_device_t rt_device_find(const char* name);
 ```
 
-* **初始化看门狗**
+* 初始化看门狗
 
-```C
-/* 初始化设备 */
-rt_device_init(wdg_dev);
+```c
+rt_err_t rt_device_init(rt_device_t dev);
 ```
 
-* **控制看门狗**
+* 控制看门狗
 
-命令控制字可取如下宏定义值：
+```c
+rt_err_t rt_device_control(rt_device_t dev, rt_uint8_t cmd, void* arg);
+```
+
+看门狗的命令控制字可取如下宏定义值：
 
 ```C
 #define RT_DEVICE_CTRL_WDT_GET_TIMEOUT    (1) /* 获取溢出时间 */
@@ -169,39 +151,21 @@ rt_device_init(wdg_dev);
 #define RT_DEVICE_CTRL_WDT_STOP           (6) /* 停止看门狗 */
 ```
 
-设置看门狗溢出时间使用示例如下所示：
+* 关闭看门狗
 
-```C
-#define WDT_DEVICE_NAME    "wdt"    /* 看门狗设备名称 */
-
-rt_uint32_t timeout = 1;       /* 溢出时间，单位：秒*/
-static rt_device_t wdg_dev;    /* 看门狗设备句柄 */
-/* 根据设备名称查找看门狗设备，获取设备句柄 */
-wdg_dev = rt_device_find(WDT_DEVICE_NAME);
-/* 初始化设备 */
-rt_device_init(wdg_dev);
-
-/* 设置看门狗溢出时间 */
-rt_device_control(wdg_dev, RT_DEVICE_CTRL_WDT_SET_TIMEOUT, &timeout);
-/* 设置空闲线程回调函数 */
-rt_thread_idle_sethook(idle_hook);
+```c
+rt_err_t rt_device_close(rt_device_t dev);
 ```
 
-在空闲线程钩子函数里喂狗使用示例如下所示：
+### 3. 框架特点
 
-```C
-static void idle_hook(void)
-{
-    /* 在空闲线程的回调函数里喂狗 */
-    rt_device_control(wdg_dev, RT_DEVICE_CTRL_WDT_KEEPALIVE, NULL);
-}
-```
+- **设备抽象统一**：所有硬件 WDT 通过相同的设备接口暴露给上层应用。
+- **跨平台支持**：应用程序可在不同 MCU 平台间移植而无需修改 WDT 相关代码。
+- **超时保护**：支持配置超时时间，系统未及时喂狗则触发中断或复位。
+- **运行模式可选**：支持 **中断模式** 和 **复位模式**，满足不同场景需求。
+- **安全可靠**：结合硬件 WDT 提供强制复位机制，防止系统异常卡死。
 
-* **关闭看门狗**
-
-```C
-rt_device_close(wdg_dev);
-```
+> **参考**：[RT-Thread WATCHDOG 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/watchdog/watchdog)
 
 ## 硬件说明
 
@@ -228,16 +192,6 @@ rt_device_close(wdg_dev);
 示例程序位于 `project/Titan_driver_wdt/src/hal_entry.c`。
 
 ```c
-/*
- * Copyright (c) 2006-2024, RT-Thread Development Team
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Change Logs:
- * Date           Author        Notes
- * 2024-03-11     kurisaw       first version
- */
-
 #include <rtthread.h>
 #include "hal_data.h"
 #include <rtdevice.h>
@@ -336,9 +290,5 @@ MSH_CMD_EXPORT(wdt_sample, wdt_sample);
 在终端输入 wdt_sample 指令运行 WDT 测试程序，在喂狗 10 次后停止喂狗，模拟了程序异常情况。
 
 ![PixPin_2025-07-28_10-11-00](figures/PixPin_2025-07-28_10-11-00.png)
-
-## 引用参考
-
-设备与驱动：[WDT 设备](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/programming-manual/device/watchdog/watchdog)
 
  
