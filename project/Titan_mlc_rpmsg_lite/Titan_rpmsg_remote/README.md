@@ -115,6 +115,42 @@ Currently, DAP-Link does not support programming the Core1 firmware, so you need
 
 ## Run Effect
 
-Core1 will automatically start **rp_remote**, and once Core0 starts **rp_master**, inter-core communication can take place.
+**Note:** In the RPMsg-Lite example project, before running the *ping pong*, *thread safety*, and *data frame transmission* examples shown below, you must first start the **remote** endpoint on **Core1**.
 
-![image-20250829160852624](figures/image-20250829160852624.png)
+![image-20251111151227184](figures/image-20251111151227184.png)
+
+### **Ping Pong Example**
+
+On **Core1**, enter the command `rp_ping_pong` to initialize the remote endpoint. Then, on **Core0**, enter the same `rp_ping_pong` command to start the master.
+
+![image-20251111150430536](figures/image-20251111150430536.png)
+
+### **Thread Safety Example**
+
+On **Core1**, enter the command `rp_thread_safefy` to initialize the remote endpoint. Then, on **Core0**, enter the same `rp_thread_safefy` command to start the master.
+
+![image-20251111151714508](figures/image-20251111151714508.png)
+
+### **Data Frame Transmission Example**
+
+On **Core1**, enter the command `rp_remote` to start the remote endpoint. Then, on **Core0**, enter the command `rp_master` to start the RPMsg master.
+
+![image-20251111152002917](figures/image-20251111152002917.png)
+
+After the master starts on **Core0**, the terminal will display the following message, indicating that the connection has been successfully established.
+
+![image-20251111152115800](figures/image-20251111152115800.png)
+
+You can then use the `rpmsg_send_to_core0` command to transmit data to **Core0**.
+
+## Notes on Using Dual-Core Projects
+
+1. **DAP-Link does not currently support dual-core projects.**
+    Please use **Renesas Flash Programmer (RFP)** for downloading, or replace the DAP-Link firmware with another debugging firmware (a tutorial is available on the RT-Thread community forum).
+
+2. **Before downloading a dual-core project**, it is recommended to use **Renesas Flash Programmer** to **erase the Flash memory**.
+
+   ![image-20251111153425017](figures/image-20251111153425017.png)
+
+3. **When configuring FSP for dual-core projects**, Core0 and Core1 must not configure the **same peripheral or pin** simultaneously.
+    For example: if **UART8** is configured in Core0’s FSP, then **UART8** must not be configured again in Core1’s FSP.

@@ -103,7 +103,7 @@ In this example, a Dupont wire is required to connect the **BL** pin on the disp
 
 * Enable the MIPI LCD and LVGL dmeo.
 
-![image-20251017181639331](figures/image-20251017181639331.png)
+![image-20251106112709572](figures/image-20251106112709572.png)
 
 ## Software Description
 
