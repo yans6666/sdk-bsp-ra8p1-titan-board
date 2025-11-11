@@ -114,6 +114,39 @@ RPMsg-Lite 基于 **virtio** 虚拟设备机制：
 
 ## 运行效果
 
-Core1 会自动启动 rp_remote，等 Core0 启动 rp_master 后就能进行核间通信了。
+**注意**：在 RPMsg-Lite 示例工程中运行下图的ping pong 示例、thread safefy 示例和数据帧传输的示例，都需要先启动 Core1 上的 remote 端。
 
-![image-20250829160852624](figures/image-20250829160852624.png)
+![image-20251111151227184](figures/image-20251111151227184.png)
+
+**ping pong 示例**
+
+在 Core1 端输入 `rp_ping_pong` 命令初始化 remote，接下来去 Core0 端输入 `rp_ping_pong` 命令启动 master。
+
+![image-20251111150430536](figures/image-20251111150430536.png)
+
+**thread safefy 示例**
+
+先在 Core1 端的终端输入 `rp_thread_safefy` 命令初始化 remote，接下来去 Core0 终端中输入 `rp_thread_safefy` 命令启动 master。
+
+![image-20251111151714508](figures/image-20251111151714508.png)
+
+**数据帧传输示例**
+
+先在 Core1 端的终端输入 `rp_remote` 命令启动 remote，再去 Core0 终端中输入 `rp_master` 命令启动 rpmsg master。
+
+![image-20251111152002917](figures/image-20251111152002917.png)
+
+在 Core0 端启动 master 后，终端会输出如下信息表示已经建立连接。
+
+![image-20251111152115800](figures/image-20251111152115800.png)
+
+之后就可以使用 `rpmsg_send_to_core0` 命令向 Core0 传输数据了。
+
+## 双核工程使用注意事项
+
+1. 双核工程目前不支持使用 DAP-Link 下载，请使用 Renesas Falsh Programmer 下载或将 DAP-Link 固件换成其他下载调试固件（RT-Thread 论坛中有开发者分享了教程）。
+2. 在下载双核工程前，建议使用 Renesas Falsh Programmer 清除一下 Flash。
+
+![image-20251111153425017](figures/image-20251111153425017.png)
+
+3. 在使用 FSP 配置双核工程时，Core0 和 Core1 的 FSP 中不能同时配置同一个引脚或外设。如：在 Core0 工程的 FSP 中配置了 UART8，那么在 Core1 工程的 FSP 中就不能再配置 UART8。

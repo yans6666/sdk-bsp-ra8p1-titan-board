@@ -43,6 +43,28 @@ To run this example, an external RGB565 LCD screen is required. The 40-pin RGB56
 
 ## FSP Configuration
 
+### HyperRAM Configuration
+
+* Create a `r_ospi_b` stack：
+
+![image-20250815132339843](figures/image-20250815132339843.png)
+
+* Configuration `r_ospi_b` stack：
+
+![image-20250924115414432](figures/image-20250924115414432.png)
+
+![image-20251031172229786](figures/image-20251031172229786.png)
+
+![image-20251031172918079](figures/image-20251031172918079.png)
+
+* Configure HyperRAM pins：
+
+![image-20250815132527184](figures/image-20250815132527184.png)
+
+* The drive capability of all pins related to HyperRAM should be configured as H, and OM_1_SIO0 to OM_1_SIO7 need to be configured as Input pull-up
+
+![image-20250924114605538](figures/image-20250924114605538.png)
+
 ### RGB LCD Configuration
 
 * Create a  `r_glcdc` stack:
@@ -111,7 +133,7 @@ To run this example, an external RGB565 LCD screen is required. The 40-pin RGB56
 
 * Enable the RGB565 LCD, the GT9147 touch driver, and LVGL.
 
-![image-20250925133427504](figures/image-20250925133427504.png)
+![image-20251106111905727](figures/image-20251106111905727.png)
 
 ## Software Description
 

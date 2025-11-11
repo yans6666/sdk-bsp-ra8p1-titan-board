@@ -64,7 +64,7 @@ The RA8 GLCDC module mainly consists of the following submodules:
 
 | Feature Category | Description                                              |
 | ---------------- | -------------------------------------------------------- |
-| Resolution       | Up to 800×480 (depending on MCU model and clock)         |
+| Resolution       | Up to 1280x800                                           |
 | Color formats    | RGB565, RGB888, ARGB8888, etc.                           |
 | Multi-layer      | Background + foreground + icon layers, supports blending |
 | Frame buffer     | Single/double buffer mode, DMA improves performance      |
@@ -94,9 +94,13 @@ The RA8 GLCDC module mainly consists of the following submodules:
 
 ![image-20251031172918079](figures/image-20251031172918079.png)
 
-* Configuration HyperRAM pins：
+* Configure HyperRAM pins：
 
 ![image-20250815132527184](figures/image-20250815132527184.png)
+
+* The drive capability of all pins related to HyperRAM should be configured as H, and OM_1_SIO0 to OM_1_SIO7 need to be configured as Input pull-up.
+
+![image-20250924114605538](figures/image-20250924114605538.png)
 
 ### RGB LCD Configuration
 

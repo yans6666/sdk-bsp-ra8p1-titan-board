@@ -116,6 +116,38 @@ Currently, DAP-Link does not support programming the Core1 firmware, so you need
 
 ## Run Effect
 
-Enter the command `rp_master` in the Core0 terminal to start the RPMsg master.
+**Note:** In the RPMsg-Lite example project, before running the following examples — *ping pong*, *thread safety*, and *data frame transmission* — you must first start the **remote** endpoint on **Core1**.
 
-<img src="figures/image-20250829161113576.png" alt="image-20250829161113576" style="zoom:150%;" />
+![image-20251111151227184](figures/image-20251111151227184.png)
+
+### **Ping Pong Example**
+
+First, enter the `rp_ping_pong` command on the **Core1** terminal, then enter the same `rp_ping_pong` command on the **Core0** terminal to start the RPMsg master.
+
+![image-20251111150646623](figures/image-20251111150646623.png)
+
+### **Thread Safety Example**
+
+First, enter the `rp_thread_safefy` command on the **Core1** terminal, then enter the same `rp_thread_safefy` command on the **Core0** terminal to start the RPMsg master.
+
+![image-20251111151745954](figures/image-20251111151745954.png)
+
+### **Data Frame Transmission Example**
+
+First, enter the `rp_remote` command on the **Core1** terminal to start the remote endpoint, then enter the `rp_master` command on the **Core0** terminal to start the RPMsg master.
+
+![image-20251111152219604](figures/image-20251111152219604.png)
+
+After that, you can use the `rpmsg_send_to_core1` command to send data to **Core1**.
+
+## Notes on Using Dual-Core Projects
+
+1. **DAP-Link does not currently support dual-core projects.**
+    Please use **Renesas Flash Programmer (RFP)** for downloading, or replace the DAP-Link firmware with another debugging firmware (a tutorial is available on the RT-Thread community forum).
+
+2. **Before downloading a dual-core project**, it is recommended to use **Renesas Flash Programmer** to **erase the Flash memory**.
+
+   ![image-20251111153425017](figures/image-20251111153425017.png)
+
+3. **When configuring FSP for dual-core projects**, Core0 and Core1 must not configure the **same peripheral or pin** simultaneously.
+    For example: if **UART8** is configured in Core0’s FSP, then **UART8** must not be configured again in Core1’s FSP.

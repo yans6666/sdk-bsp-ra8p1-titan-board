@@ -66,7 +66,7 @@ The RA8 GLCDC module mainly consists of the following submodules:
 
 | Feature Category | Description                                              |
 | ---------------- | -------------------------------------------------------- |
-| Resolution       | Up to 800×480 (depending on MCU model and clock)         |
+| Resolution       | Up to 1280x800                                           |
 | Color formats    | RGB565, RGB888, ARGB8888, etc.                           |
 | Multi-layer      | Background + foreground + icon layers, supports blending |
 | Frame buffer     | Single/double buffer mode, DMA improves performance      |

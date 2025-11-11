@@ -286,3 +286,13 @@ bool rmac_phy_target_rtl8211_is_support_link_partner_ability (rmac_phy_instance_
 将网线插入 ETH0 网口，按下复位按键重启开发板，等待 PHY0 link up 之后输入 `ifconfig` 可以查看开发板获取到的 IP 地址，然后输入 `ping baidu.com` 命令进行连通性测试。
 
 ![image-20250814153134610](figures/image-20250814153134610.png)
+
+### iperf 测试
+
+打开 RT-Thread Settings 添加 netutils 软件包并使能 iperf 工具。
+
+![image-20251110114623672](figures/image-20251110114623672.png)
+
+编译下载后在串口终端输入 `iperf -c 主机IP -p 5001` 进行 iperf 测试。
+
+![image-20251110115000947](figures/image-20251110115000947.png)

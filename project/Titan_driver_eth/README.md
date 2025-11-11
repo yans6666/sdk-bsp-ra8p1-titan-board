@@ -286,3 +286,13 @@ Once compiled, connect the development board’s USB-DBG interface to the PC, an
 Insert the network cable into the ETH0 network port, press the reset button to restart the development board, wait for PHY0 link up, then enter `ifconfig` to view the IP address obtained by the development board, and then enter `ping baidu.com` command to test the connectivity.
 
 ![image-20250814153134610](figures/image-20250814153134610.png)
+
+### iperf test
+
+Open RT-Thread Settings, add the netutils package and enable the iperf tool.
+
+![image-20251110114623672](figures/image-20251110114623672.png)
+
+After compiling and downloading, input `iperf -c the ip address of your computer -p 5001` in the serial terminal to conduct the iperf test.
+
+![image-20251110115000947](figures/image-20251110115000947.png)

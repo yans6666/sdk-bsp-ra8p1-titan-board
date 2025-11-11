@@ -97,3 +97,12 @@ void hal_entry(void)
 复位开发板后蓝色(Core0)和绿色(Core1) LED 会不停闪烁。
 
 <img src="figures/image-20250829144319290.png" alt="image-20250829144319290" style="zoom:150%;" />
+
+## 双核工程使用注意事项
+
+1. 双核工程目前不支持使用 DAP-Link 下载，请使用 Renesas Falsh Programmer 下载或将 DAP-Link 固件换成其他下载调试固件（RT-Thread 论坛中有开发者分享了教程）。
+2. 在下载双核工程前，建议使用 Renesas Falsh Programmer 清除一下 Flash。
+
+![image-20251111153425017](figures/image-20251111153425017.png)
+
+3. 在使用 FSP 配置双核工程时，Core0 和 Core1 的 FSP 中不能同时配置同一个引脚或外设。如：在 Core0 工程的 FSP 中配置了 UART8，那么在 Core1 工程的 FSP 中就不能再配置 UART8。
