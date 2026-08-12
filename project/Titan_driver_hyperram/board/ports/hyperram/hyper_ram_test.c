@@ -38,6 +38,14 @@ ospi_b_xspi_command_set_t g_hyper_ram_commands[] =
     }
 };
 
+spi_flash_erase_command_t g_erase_commands[] =
+{
+    {
+        .command = 0,
+        .size = 0,
+    }
+};
+
 uint16_t swap16(uint16_t value)
 {
     uint16_t ret;

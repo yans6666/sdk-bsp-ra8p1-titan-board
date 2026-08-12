@@ -50,8 +50,16 @@ void Reset_Handler (void)
     SystemInit();
 
     /* Call user application. */
+#if defined(__GNUC__)
     extern int entry(void);
     entry();
+#elif defined(__ICCARM__)
+    extern void __low_level_init(void);
+    __low_level_init();
+#else
+    /* Jump to main. */
+    main();
+#endif
 
     while (1)
     {

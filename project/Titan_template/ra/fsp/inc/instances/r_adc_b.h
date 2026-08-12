@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Renesas Electronics Corporation and/or its affiliates
+* Copyright (c) 2020 - 2026 Renesas Electronics Corporation and/or its affiliates
 *
 * SPDX-License-Identifier: BSD-3-Clause
 */
@@ -30,9 +30,10 @@ FSP_HEADER
 /***********************************************************************************************************************
  * Macro definitions
  **********************************************************************************************************************/
-#define ADC_B_CHANNEL_VALID_FOR_UNIT(channel_mask, unit_id)    ((ADC_B_UNIT_ID_0 == unit_id) ?                       \
-                                                                (channel_mask & BSP_FEATURE_ADC_B_UNIT_0_CHANNELS) : \
-                                                                (channel_mask & BSP_FEATURE_ADC_B_UNIT_1_CHANNELS))
+#define ADC_B_CHANNEL_VALID_FOR_UNIT(channel_mask, unit_id)    ((ADC_B_UNIT_ID_0 == unit_id) ?             \
+                                                                (channel_mask &                            \
+                                                                 BSP_FEATURE_ADC_B_UNIT_0_CHANNELS_MASK) : \
+                                                                (channel_mask & BSP_FEATURE_ADC_B_UNIT_1_CHANNELS_MASK))
 
 #define R_ADC_B0_ADUGTR_UGAIN_INTEGER_Pos       (22)
 #define R_ADC_B0_ADUGTR_UGAIN_INTEGER_Msk       (0xC00000)

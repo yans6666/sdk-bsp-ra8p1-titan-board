@@ -26,6 +26,7 @@ FSP_HEADER
         extern mipi_phy_ctrl_t g_cam_mipi_phy_ctrl;
         extern const mipi_phy_cfg_t g_cam_mipi_phy_cfg;
 /* MIPI CSI on MIPI CSI Instance. */
+            extern const mipi_csi_instance_t g_cam_mipi_csi;
 
             /* Access the MIPI CSI instance using these structures when calling API functions directly (::p_api is not used). */
             extern mipi_csi_instance_ctrl_t g_cam_mipi_csi_ctrl;
@@ -35,6 +36,7 @@ FSP_HEADER
               void cam_mipi_csi_callback(mipi_csi_callback_args_t * p_args);
             #endif
 /* MIPI VIN on MIPI VIN Instance. */
+            extern const capture_instance_t g_cam_vin;
 
             /* Access the MIPI VIN instance using these structures when calling API functions directly (::p_api is not used). */
             extern vin_instance_ctrl_t g_cam_vin_ctrl;
@@ -44,10 +46,19 @@ FSP_HEADER
               void cam_vin_callback(capture_callback_args_t * p_args);
             #endif
 
-            #define VIN_CFG_BYTES_PER_PIXEL (2)
-            #define VIN_BYTES_PER_FRAME (640 * 480 * VIN_CFG_BYTES_PER_PIXEL)
+    
+#ifndef VIN_CFG_IMAGE_STRIDE
+  #define VIN_CFG_IMAGE_STRIDE (640)
+#endif
 
-            extern uint8_t vin_image_buffer_1[VIN_BYTES_PER_FRAME];
+#ifndef VIN_CFG_BYTES_PER_LINE
+  #define VIN_CFG_BYTES_PER_LINE (1280)
+#endif
+
+
+#define VIN_BYTES_PER_FRAME (VIN_CFG_BYTES_PER_LINE * 480)
+
+extern uint8_t vin_image_buffer_1[VIN_BYTES_PER_FRAME];
 extern uint8_t vin_image_buffer_2[VIN_BYTES_PER_FRAME];
 extern uint8_t vin_image_buffer_3[VIN_BYTES_PER_FRAME];
 
@@ -90,6 +101,10 @@ extern const ether_phy_instance_t g_rmac_phy1;
 extern rmac_phy_instance_ctrl_t g_rmac_phy1_ctrl;
 extern const ether_phy_cfg_t g_rmac_phy1_cfg;
 extern const rmac_phy_extended_cfg_t g_rmac_phy1_extended_cfg;
+
+#ifndef NULL
+void NULL(ether_phy_callback_args_t * p_args);
+#endif
 #ifndef ETHER_PHY_LSI_TYPE_KIT_COMPONENT
   #define ETHER_PHY_LSI_TYPE_KIT_COMPONENT ETHER_PHY_LSI_TYPE_DEFAULT
 #endif
@@ -109,6 +124,16 @@ extern const ether_phy_instance_t g_rmac_phy0;
 extern rmac_phy_instance_ctrl_t g_rmac_phy0_ctrl;
 extern const ether_phy_cfg_t g_rmac_phy0_cfg;
 extern const rmac_phy_extended_cfg_t g_rmac_phy0_extended_cfg;
+
+#ifndef NULL
+void NULL(ether_phy_callback_args_t * p_args);
+#endif
+#ifndef NULL
+void NULL(ether_switch_callback_args_t * p_args);
+#endif
+#ifndef NULL
+void NULL(ether_switch_callback_args_t * p_args);
+#endif
 #ifndef NULL
 void NULL(ether_switch_callback_args_t * p_args);
 #endif

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Renesas Electronics Corporation and/or its affiliates
+* Copyright (c) 2020 - 2026 Renesas Electronics Corporation and/or its affiliates
 *
 * SPDX-License-Identifier: BSD-3-Clause
 */
@@ -77,7 +77,7 @@ __STATIC_INLINE void R_BSP_IrqStatusClear (IRQn_Type irq)
     R_ICU->IELSR_b[irq].IR = 0U;
 
     /* Read back the IELSR register to ensure that the IR bit is cleared.
-     * See section "13.5.1 Operations During an Interrupt" in the RA8M1 manual R01UH0994EJ0100. */
+     * See "Operations During an Interrupt" in the ICU section of the relevant hardware manual. */
     FSP_REGISTER_READ(R_ICU->IELSR[irq]);
 }
 

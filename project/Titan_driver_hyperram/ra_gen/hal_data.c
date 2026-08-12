@@ -26,7 +26,8 @@ sci_b_uart_instance_ctrl_t     g_uart8_ctrl;
                     .polarity = SCI_B_UART_RS485_DE_POLARITY_HIGH,
                     .assertion_time = 1,
                     .negation_time = 1,
-                }
+                },
+                .delay_cycles = 0,
             };
 
             /** UART interface configuration */
@@ -84,6 +85,7 @@ const uart_instance_t g_uart8 =
     .p_cfg         = &g_uart8_cfg,
     .p_api         = &g_uart_on_sci_b
 };
+
 dmac_instance_ctrl_t g_transfer0_ctrl;
 transfer_info_t g_transfer0_info =
 {
@@ -126,6 +128,7 @@ const transfer_instance_t g_transfer0 =
     .p_cfg         = &g_transfer0_cfg,
     .p_api         = &g_transfer_on_dmac
 };
+
 ospi_b_instance_ctrl_t g_ospi1_ctrl;
 
 static ospi_b_timing_setting_t g_ospi1_timing_settings =
@@ -138,8 +141,8 @@ static ospi_b_timing_setting_t g_ospi1_timing_settings =
     .sdr_sampling_delay          = OSPI_B_SDR_SAMPLING_DELAY_NONE,
     .ddr_sampling_extension      = OSPI_B_DDR_SAMPLING_EXTENSION_1,
 };
-
 extern ospi_b_xspi_command_set_t g_hyper_ram_commands[];
+extern spi_flash_erase_command_t g_erase_commands[];
 static const ospi_b_table_t g_ospi1_command_set =
 {
     .p_table = (void *) g_hyper_ram_commands,
@@ -176,7 +179,7 @@ static const ospi_b_extended_cfg_t g_ospi1_extended_cfg =
     .p_dotf_cfg                              = &g_ospi_dotf_cfg,
 #endif
 #if OSPI_B_CFG_ROW_ADDRESSING_SUPPORT_ENABLE
-    .row_index_bytes                         = 0xFF
+    .row_index_bytes                         = 0xFF,
 #endif
 };
 const spi_flash_cfg_t g_ospi1_cfg =
@@ -200,8 +203,9 @@ const spi_flash_cfg_t g_ospi1_cfg =
     .xip_enter_command           = 0U,
     .xip_exit_command            = 0U,
 #endif
-    .erase_command_list_length   = 0U,   /* OSPI_B uses command sets. See g_ospi1_command_set. */
-    .p_erase_command_list        = NULL, /* OSPI_B uses command sets. See g_ospi1_command_set. */
+    /* OSPI_B uses command sets, this is kept for backwards compatibility. See g_ospi1_command_set. */
+    .erase_command_list_length   = 1,
+    .p_erase_command_list        = (spi_flash_erase_command_t const *) g_erase_commands,
     .p_extend                    = &g_ospi1_extended_cfg,
 };
 

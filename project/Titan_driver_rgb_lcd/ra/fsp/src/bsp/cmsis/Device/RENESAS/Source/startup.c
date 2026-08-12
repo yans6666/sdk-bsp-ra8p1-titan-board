@@ -49,11 +49,16 @@ void Reset_Handler (void)
     /* Initialize system using BSP. */
     SystemInit();
 
-#ifdef __ARMCC_VERSION
-    main();
-#elif defined(__GNUC__)
+    /* Call user application. */
+#if defined(__GNUC__)
     extern int entry(void);
     entry();
+#elif defined(__ICCARM__)
+    extern void __low_level_init(void);
+    __low_level_init();
+#else
+    /* Jump to main. */
+    main();
 #endif
 
     while (1)

@@ -15,6 +15,7 @@
     "ra/fsp/inc",
     "ra/fsp/inc/api",
     "ra/fsp/inc/instances",
+    "ra/fsp/src/r_drw",
     "ra/fsp/src/r_mipi_csi",
     "ra/fsp/src/r_vin",
     "ra/tes/dave2d/inc",
@@ -32,5 +33,7 @@
   "isPreBuildContentGenEnabled": true,
   "isPostBuildContentGenEnabled": true,
   "isTargetDeviceSupportsTrustZone": true,
-  "buildOptionsMap": {}
+  "buildOptionsMap": {},
+  "targetDeviceCommand": "R7KA8P1KF",
+  "targetCoreName": "CPU0"
 }

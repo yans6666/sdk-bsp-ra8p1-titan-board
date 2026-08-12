@@ -2944,6 +2944,34 @@ const rtc_instance_t g_rtc =
     .p_cfg         = &g_rtc_cfg,
     .p_api         = &g_rtc_on_rtc
 };
+#define RA_NOT_DEFINED (UINT32_MAX)
+#if (RA_NOT_DEFINED) != (RA_NOT_DEFINED)
+
+/* If the transfer module is DMAC, define a DMAC transfer callback. */
+#include "r_dmac.h"
+extern void spi_b_tx_dmac_callback(spi_b_instance_ctrl_t const * const p_ctrl);
+
+void g_spi0_tx_transfer_callback (dmac_callback_args_t * p_args)
+{
+    FSP_PARAMETER_NOT_USED(p_args);
+    spi_b_tx_dmac_callback(&g_spi0_ctrl);
+}
+#endif
+
+#if (RA_NOT_DEFINED) != (RA_NOT_DEFINED)
+
+/* If the transfer module is DMAC, define a DMAC transfer callback. */
+#include "r_dmac.h"
+extern void spi_b_rx_dmac_callback(spi_b_instance_ctrl_t const * const p_ctrl);
+
+void g_spi0_rx_transfer_callback (dmac_callback_args_t * p_args)
+{
+    FSP_PARAMETER_NOT_USED(p_args);
+    spi_b_rx_dmac_callback(&g_spi0_ctrl);
+}
+#endif
+#undef RA_NOT_DEFINED
+
 spi_b_instance_ctrl_t g_spi0_ctrl;
 
 /** SPI extended configuration for SPI HAL driver */
@@ -2963,6 +2991,7 @@ const spi_b_extended_cfg_t g_spi0_ext_cfg =
     .spck_delay          = SPI_B_DELAY_COUNT_1,
     .ssl_negation_delay  = SPI_B_DELAY_COUNT_1,
     .next_access_delay   = SPI_B_DELAY_COUNT_1,
+    .burst_interframe_delay = SPI_B_BURST_TRANSFER_WITH_DELAY
 
  };
 
@@ -3293,22 +3322,22 @@ gpt_instance_ctrl_t g_timer12_ctrl;
 #if 0
 const gpt_extended_pwm_cfg_t g_timer12_pwm_extend =
 {
-    .trough_ipl          = (BSP_IRQ_DISABLED),
+    .trough_ipl             = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT12_COUNTER_UNDERFLOW)
-    .trough_irq          = VECTOR_NUMBER_GPT12_COUNTER_UNDERFLOW,
+    .trough_irq             = VECTOR_NUMBER_GPT12_COUNTER_UNDERFLOW,
 #else
-    .trough_irq          = FSP_INVALID_VECTOR,
+    .trough_irq             = FSP_INVALID_VECTOR,
 #endif
-    .poeg_link           = GPT_POEG_LINK_POEG0,
-    .output_disable      = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
-    .adc_trigger         = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
-    .dead_time_count_up  = 0,
-    .dead_time_count_down = 0,
-    .adc_a_compare_match = 0,
-    .adc_b_compare_match = 0,
-    .interrupt_skip_source = GPT_INTERRUPT_SKIP_SOURCE_NONE,
-    .interrupt_skip_count  = GPT_INTERRUPT_SKIP_COUNT_0,
-    .interrupt_skip_adc    = GPT_INTERRUPT_SKIP_ADC_NONE,
+    .poeg_link              = GPT_POEG_LINK_POEG0,
+    .output_disable         = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
+    .adc_trigger            = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
+    .dead_time_count_up     = 0,
+    .dead_time_count_down   = 0,
+    .adc_a_compare_match    = 0,
+    .adc_b_compare_match    = 0,
+    .interrupt_skip_source  = GPT_INTERRUPT_SKIP_SOURCE_NONE,
+    .interrupt_skip_count   = GPT_INTERRUPT_SKIP_COUNT_0,
+    .interrupt_skip_adc     = GPT_INTERRUPT_SKIP_ADC_NONE,
     .gtioca_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
     .gtiocb_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
 };
@@ -3330,23 +3359,47 @@ const gpt_extended_cfg_t g_timer12_extend =
     .capture_b_source    = (gpt_source_t) ( GPT_SOURCE_NONE),
     .capture_a_ipl       = (BSP_IRQ_DISABLED),
     .capture_b_ipl       = (BSP_IRQ_DISABLED),
+    .compare_match_c_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_d_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_e_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_f_ipl = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT12_CAPTURE_COMPARE_A)
-    .capture_a_irq       = VECTOR_NUMBER_GPT12_CAPTURE_COMPARE_A,
+    .capture_a_irq         = VECTOR_NUMBER_GPT12_CAPTURE_COMPARE_A,
 #else
-    .capture_a_irq       = FSP_INVALID_VECTOR,
+    .capture_a_irq         = FSP_INVALID_VECTOR,
 #endif
 #if defined(VECTOR_NUMBER_GPT12_CAPTURE_COMPARE_B)
-    .capture_b_irq       = VECTOR_NUMBER_GPT12_CAPTURE_COMPARE_B,
+    .capture_b_irq         = VECTOR_NUMBER_GPT12_CAPTURE_COMPARE_B,
 #else
-    .capture_b_irq       = FSP_INVALID_VECTOR,
+    .capture_b_irq         = FSP_INVALID_VECTOR,
 #endif
-     .compare_match_value = { /* CMP_A */ (uint32_t)0x0, /* CMP_B */ (uint32_t)0x0}, .compare_match_status = (0U << 1U) | 0U,
-    .capture_filter_gtioca       = GPT_CAPTURE_FILTER_NONE,
-    .capture_filter_gtiocb       = GPT_CAPTURE_FILTER_NONE,
-#if 0
-    .p_pwm_cfg                   = &g_timer12_pwm_extend,
+#if defined(VECTOR_NUMBER_GPT12_COMPARE_C)
+    .compare_match_c_irq   = VECTOR_NUMBER_GPT12_COMPARE_C,
 #else
-    .p_pwm_cfg                   = NULL,
+    .compare_match_c_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT12_COMPARE_D)
+    .compare_match_d_irq   = VECTOR_NUMBER_GPT12_COMPARE_D,
+#else
+    .compare_match_d_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT12_COMPARE_E)
+    .compare_match_e_irq   = VECTOR_NUMBER_GPT12_COMPARE_E,
+#else
+    .compare_match_e_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT12_COMPARE_F)
+    .compare_match_f_irq   = VECTOR_NUMBER_GPT12_COMPARE_F,
+#else
+    .compare_match_f_irq   = FSP_INVALID_VECTOR,
+#endif
+     .compare_match_value = { (uint32_t)0x0, /* CMP_A */(uint32_t)0x0, /* CMP_B */(uint32_t)0x0, /* CMP_C */(uint32_t)0x0, /* CMP_D */(uint32_t)0x0, /* CMP_E */(uint32_t)0x0, /* CMP_F */ }, .compare_match_status = ((0U << 5U) | (0U << 4U) | (0U << 3U) | (0U << 2U) | (0U << 1U) | 0U),
+    .capture_filter_gtioca = GPT_CAPTURE_FILTER_NONE,
+    .capture_filter_gtiocb = GPT_CAPTURE_FILTER_NONE,
+#if 0
+    .p_pwm_cfg             = &g_timer12_pwm_extend,
+#else
+    .p_pwm_cfg             = NULL,
 #endif
 #if 0
     .gtior_setting.gtior_b.gtioa  = (0U << 4U) | (0U << 2U) | (0U << 0U),
@@ -3366,6 +3419,9 @@ const gpt_extended_cfg_t g_timer12_extend =
 #else
     .gtior_setting.gtior = 0U,
 #endif
+
+    .gtioca_polarity = GPT_GTIOC_POLARITY_NORMAL,
+    .gtiocb_polarity = GPT_GTIOC_POLARITY_NORMAL,
 };
 
 const timer_cfg_t g_timer12_cfg =
@@ -3399,22 +3455,22 @@ gpt_instance_ctrl_t g_timer10_ctrl;
 #if 0
 const gpt_extended_pwm_cfg_t g_timer10_pwm_extend =
 {
-    .trough_ipl          = (BSP_IRQ_DISABLED),
+    .trough_ipl             = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT10_COUNTER_UNDERFLOW)
-    .trough_irq          = VECTOR_NUMBER_GPT10_COUNTER_UNDERFLOW,
+    .trough_irq             = VECTOR_NUMBER_GPT10_COUNTER_UNDERFLOW,
 #else
-    .trough_irq          = FSP_INVALID_VECTOR,
+    .trough_irq             = FSP_INVALID_VECTOR,
 #endif
-    .poeg_link           = GPT_POEG_LINK_POEG0,
-    .output_disable      = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
-    .adc_trigger         = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
-    .dead_time_count_up  = 0,
-    .dead_time_count_down = 0,
-    .adc_a_compare_match = 0,
-    .adc_b_compare_match = 0,
-    .interrupt_skip_source = GPT_INTERRUPT_SKIP_SOURCE_NONE,
-    .interrupt_skip_count  = GPT_INTERRUPT_SKIP_COUNT_0,
-    .interrupt_skip_adc    = GPT_INTERRUPT_SKIP_ADC_NONE,
+    .poeg_link              = GPT_POEG_LINK_POEG0,
+    .output_disable         = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
+    .adc_trigger            = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
+    .dead_time_count_up     = 0,
+    .dead_time_count_down   = 0,
+    .adc_a_compare_match    = 0,
+    .adc_b_compare_match    = 0,
+    .interrupt_skip_source  = GPT_INTERRUPT_SKIP_SOURCE_NONE,
+    .interrupt_skip_count   = GPT_INTERRUPT_SKIP_COUNT_0,
+    .interrupt_skip_adc     = GPT_INTERRUPT_SKIP_ADC_NONE,
     .gtioca_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
     .gtiocb_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
 };
@@ -3436,23 +3492,47 @@ const gpt_extended_cfg_t g_timer10_extend =
     .capture_b_source    = (gpt_source_t) ( GPT_SOURCE_NONE),
     .capture_a_ipl       = (BSP_IRQ_DISABLED),
     .capture_b_ipl       = (BSP_IRQ_DISABLED),
+    .compare_match_c_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_d_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_e_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_f_ipl = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT10_CAPTURE_COMPARE_A)
-    .capture_a_irq       = VECTOR_NUMBER_GPT10_CAPTURE_COMPARE_A,
+    .capture_a_irq         = VECTOR_NUMBER_GPT10_CAPTURE_COMPARE_A,
 #else
-    .capture_a_irq       = FSP_INVALID_VECTOR,
+    .capture_a_irq         = FSP_INVALID_VECTOR,
 #endif
 #if defined(VECTOR_NUMBER_GPT10_CAPTURE_COMPARE_B)
-    .capture_b_irq       = VECTOR_NUMBER_GPT10_CAPTURE_COMPARE_B,
+    .capture_b_irq         = VECTOR_NUMBER_GPT10_CAPTURE_COMPARE_B,
 #else
-    .capture_b_irq       = FSP_INVALID_VECTOR,
+    .capture_b_irq         = FSP_INVALID_VECTOR,
 #endif
-     .compare_match_value = { /* CMP_A */ (uint32_t)0x0, /* CMP_B */ (uint32_t)0x0}, .compare_match_status = (0U << 1U) | 0U,
-    .capture_filter_gtioca       = GPT_CAPTURE_FILTER_NONE,
-    .capture_filter_gtiocb       = GPT_CAPTURE_FILTER_NONE,
-#if 0
-    .p_pwm_cfg                   = &g_timer10_pwm_extend,
+#if defined(VECTOR_NUMBER_GPT10_COMPARE_C)
+    .compare_match_c_irq   = VECTOR_NUMBER_GPT10_COMPARE_C,
 #else
-    .p_pwm_cfg                   = NULL,
+    .compare_match_c_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT10_COMPARE_D)
+    .compare_match_d_irq   = VECTOR_NUMBER_GPT10_COMPARE_D,
+#else
+    .compare_match_d_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT10_COMPARE_E)
+    .compare_match_e_irq   = VECTOR_NUMBER_GPT10_COMPARE_E,
+#else
+    .compare_match_e_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT10_COMPARE_F)
+    .compare_match_f_irq   = VECTOR_NUMBER_GPT10_COMPARE_F,
+#else
+    .compare_match_f_irq   = FSP_INVALID_VECTOR,
+#endif
+     .compare_match_value = { (uint32_t)0x0, /* CMP_A */(uint32_t)0x0, /* CMP_B */(uint32_t)0x0, /* CMP_C */(uint32_t)0x0, /* CMP_D */(uint32_t)0x0, /* CMP_E */(uint32_t)0x0, /* CMP_F */ }, .compare_match_status = ((0U << 5U) | (0U << 4U) | (0U << 3U) | (0U << 2U) | (0U << 1U) | 0U),
+    .capture_filter_gtioca = GPT_CAPTURE_FILTER_NONE,
+    .capture_filter_gtiocb = GPT_CAPTURE_FILTER_NONE,
+#if 0
+    .p_pwm_cfg             = &g_timer10_pwm_extend,
+#else
+    .p_pwm_cfg             = NULL,
 #endif
 #if 0
     .gtior_setting.gtior_b.gtioa  = (0U << 4U) | (0U << 2U) | (0U << 0U),
@@ -3472,6 +3552,9 @@ const gpt_extended_cfg_t g_timer10_extend =
 #else
     .gtior_setting.gtior = 0U,
 #endif
+
+    .gtioca_polarity = GPT_GTIOC_POLARITY_NORMAL,
+    .gtiocb_polarity = GPT_GTIOC_POLARITY_NORMAL,
 };
 
 const timer_cfg_t g_timer10_cfg =
@@ -3505,22 +3588,22 @@ gpt_instance_ctrl_t g_timer2_ctrl;
 #if 0
 const gpt_extended_pwm_cfg_t g_timer2_pwm_extend =
 {
-    .trough_ipl          = (BSP_IRQ_DISABLED),
+    .trough_ipl             = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT2_COUNTER_UNDERFLOW)
-    .trough_irq          = VECTOR_NUMBER_GPT2_COUNTER_UNDERFLOW,
+    .trough_irq             = VECTOR_NUMBER_GPT2_COUNTER_UNDERFLOW,
 #else
-    .trough_irq          = FSP_INVALID_VECTOR,
+    .trough_irq             = FSP_INVALID_VECTOR,
 #endif
-    .poeg_link           = GPT_POEG_LINK_POEG0,
-    .output_disable      = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
-    .adc_trigger         = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
-    .dead_time_count_up  = 0,
-    .dead_time_count_down = 0,
-    .adc_a_compare_match = 0,
-    .adc_b_compare_match = 0,
-    .interrupt_skip_source = GPT_INTERRUPT_SKIP_SOURCE_NONE,
-    .interrupt_skip_count  = GPT_INTERRUPT_SKIP_COUNT_0,
-    .interrupt_skip_adc    = GPT_INTERRUPT_SKIP_ADC_NONE,
+    .poeg_link              = GPT_POEG_LINK_POEG0,
+    .output_disable         = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
+    .adc_trigger            = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
+    .dead_time_count_up     = 0,
+    .dead_time_count_down   = 0,
+    .adc_a_compare_match    = 0,
+    .adc_b_compare_match    = 0,
+    .interrupt_skip_source  = GPT_INTERRUPT_SKIP_SOURCE_NONE,
+    .interrupt_skip_count   = GPT_INTERRUPT_SKIP_COUNT_0,
+    .interrupt_skip_adc     = GPT_INTERRUPT_SKIP_ADC_NONE,
     .gtioca_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
     .gtiocb_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
 };
@@ -3542,23 +3625,47 @@ const gpt_extended_cfg_t g_timer2_extend =
     .capture_b_source    = (gpt_source_t) ( GPT_SOURCE_NONE),
     .capture_a_ipl       = (BSP_IRQ_DISABLED),
     .capture_b_ipl       = (BSP_IRQ_DISABLED),
+    .compare_match_c_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_d_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_e_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_f_ipl = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT2_CAPTURE_COMPARE_A)
-    .capture_a_irq       = VECTOR_NUMBER_GPT2_CAPTURE_COMPARE_A,
+    .capture_a_irq         = VECTOR_NUMBER_GPT2_CAPTURE_COMPARE_A,
 #else
-    .capture_a_irq       = FSP_INVALID_VECTOR,
+    .capture_a_irq         = FSP_INVALID_VECTOR,
 #endif
 #if defined(VECTOR_NUMBER_GPT2_CAPTURE_COMPARE_B)
-    .capture_b_irq       = VECTOR_NUMBER_GPT2_CAPTURE_COMPARE_B,
+    .capture_b_irq         = VECTOR_NUMBER_GPT2_CAPTURE_COMPARE_B,
 #else
-    .capture_b_irq       = FSP_INVALID_VECTOR,
+    .capture_b_irq         = FSP_INVALID_VECTOR,
 #endif
-     .compare_match_value = { /* CMP_A */ (uint32_t)0x0, /* CMP_B */ (uint32_t)0x0}, .compare_match_status = (0U << 1U) | 0U,
-    .capture_filter_gtioca       = GPT_CAPTURE_FILTER_NONE,
-    .capture_filter_gtiocb       = GPT_CAPTURE_FILTER_NONE,
-#if 0
-    .p_pwm_cfg                   = &g_timer2_pwm_extend,
+#if defined(VECTOR_NUMBER_GPT2_COMPARE_C)
+    .compare_match_c_irq   = VECTOR_NUMBER_GPT2_COMPARE_C,
 #else
-    .p_pwm_cfg                   = NULL,
+    .compare_match_c_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT2_COMPARE_D)
+    .compare_match_d_irq   = VECTOR_NUMBER_GPT2_COMPARE_D,
+#else
+    .compare_match_d_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT2_COMPARE_E)
+    .compare_match_e_irq   = VECTOR_NUMBER_GPT2_COMPARE_E,
+#else
+    .compare_match_e_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT2_COMPARE_F)
+    .compare_match_f_irq   = VECTOR_NUMBER_GPT2_COMPARE_F,
+#else
+    .compare_match_f_irq   = FSP_INVALID_VECTOR,
+#endif
+     .compare_match_value = { (uint32_t)0x0, /* CMP_A */(uint32_t)0x0, /* CMP_B */(uint32_t)0x0, /* CMP_C */(uint32_t)0x0, /* CMP_D */(uint32_t)0x0, /* CMP_E */(uint32_t)0x0, /* CMP_F */ }, .compare_match_status = ((0U << 5U) | (0U << 4U) | (0U << 3U) | (0U << 2U) | (0U << 1U) | 0U),
+    .capture_filter_gtioca = GPT_CAPTURE_FILTER_NONE,
+    .capture_filter_gtiocb = GPT_CAPTURE_FILTER_NONE,
+#if 0
+    .p_pwm_cfg             = &g_timer2_pwm_extend,
+#else
+    .p_pwm_cfg             = NULL,
 #endif
 #if 0
     .gtior_setting.gtior_b.gtioa  = (0U << 4U) | (0U << 2U) | (0U << 0U),
@@ -3578,6 +3685,9 @@ const gpt_extended_cfg_t g_timer2_extend =
 #else
     .gtior_setting.gtior = 0U,
 #endif
+
+    .gtioca_polarity = GPT_GTIOC_POLARITY_NORMAL,
+    .gtiocb_polarity = GPT_GTIOC_POLARITY_NORMAL,
 };
 
 const timer_cfg_t g_timer2_cfg =
@@ -3611,22 +3721,22 @@ gpt_instance_ctrl_t g_timer1_ctrl;
 #if 0
 const gpt_extended_pwm_cfg_t g_timer1_pwm_extend =
 {
-    .trough_ipl          = (BSP_IRQ_DISABLED),
+    .trough_ipl             = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT1_COUNTER_UNDERFLOW)
-    .trough_irq          = VECTOR_NUMBER_GPT1_COUNTER_UNDERFLOW,
+    .trough_irq             = VECTOR_NUMBER_GPT1_COUNTER_UNDERFLOW,
 #else
-    .trough_irq          = FSP_INVALID_VECTOR,
+    .trough_irq             = FSP_INVALID_VECTOR,
 #endif
-    .poeg_link           = GPT_POEG_LINK_POEG0,
-    .output_disable      = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
-    .adc_trigger         = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
-    .dead_time_count_up  = 0,
-    .dead_time_count_down = 0,
-    .adc_a_compare_match = 0,
-    .adc_b_compare_match = 0,
-    .interrupt_skip_source = GPT_INTERRUPT_SKIP_SOURCE_NONE,
-    .interrupt_skip_count  = GPT_INTERRUPT_SKIP_COUNT_0,
-    .interrupt_skip_adc    = GPT_INTERRUPT_SKIP_ADC_NONE,
+    .poeg_link              = GPT_POEG_LINK_POEG0,
+    .output_disable         = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
+    .adc_trigger            = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
+    .dead_time_count_up     = 0,
+    .dead_time_count_down   = 0,
+    .adc_a_compare_match    = 0,
+    .adc_b_compare_match    = 0,
+    .interrupt_skip_source  = GPT_INTERRUPT_SKIP_SOURCE_NONE,
+    .interrupt_skip_count   = GPT_INTERRUPT_SKIP_COUNT_0,
+    .interrupt_skip_adc     = GPT_INTERRUPT_SKIP_ADC_NONE,
     .gtioca_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
     .gtiocb_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
 };
@@ -3648,23 +3758,47 @@ const gpt_extended_cfg_t g_timer1_extend =
     .capture_b_source    = (gpt_source_t) ( GPT_SOURCE_NONE),
     .capture_a_ipl       = (BSP_IRQ_DISABLED),
     .capture_b_ipl       = (BSP_IRQ_DISABLED),
+    .compare_match_c_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_d_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_e_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_f_ipl = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT1_CAPTURE_COMPARE_A)
-    .capture_a_irq       = VECTOR_NUMBER_GPT1_CAPTURE_COMPARE_A,
+    .capture_a_irq         = VECTOR_NUMBER_GPT1_CAPTURE_COMPARE_A,
 #else
-    .capture_a_irq       = FSP_INVALID_VECTOR,
+    .capture_a_irq         = FSP_INVALID_VECTOR,
 #endif
 #if defined(VECTOR_NUMBER_GPT1_CAPTURE_COMPARE_B)
-    .capture_b_irq       = VECTOR_NUMBER_GPT1_CAPTURE_COMPARE_B,
+    .capture_b_irq         = VECTOR_NUMBER_GPT1_CAPTURE_COMPARE_B,
 #else
-    .capture_b_irq       = FSP_INVALID_VECTOR,
+    .capture_b_irq         = FSP_INVALID_VECTOR,
 #endif
-     .compare_match_value = { /* CMP_A */ (uint32_t)0x0, /* CMP_B */ (uint32_t)0x0}, .compare_match_status = (0U << 1U) | 0U,
-    .capture_filter_gtioca       = GPT_CAPTURE_FILTER_NONE,
-    .capture_filter_gtiocb       = GPT_CAPTURE_FILTER_NONE,
-#if 0
-    .p_pwm_cfg                   = &g_timer1_pwm_extend,
+#if defined(VECTOR_NUMBER_GPT1_COMPARE_C)
+    .compare_match_c_irq   = VECTOR_NUMBER_GPT1_COMPARE_C,
 #else
-    .p_pwm_cfg                   = NULL,
+    .compare_match_c_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT1_COMPARE_D)
+    .compare_match_d_irq   = VECTOR_NUMBER_GPT1_COMPARE_D,
+#else
+    .compare_match_d_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT1_COMPARE_E)
+    .compare_match_e_irq   = VECTOR_NUMBER_GPT1_COMPARE_E,
+#else
+    .compare_match_e_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT1_COMPARE_F)
+    .compare_match_f_irq   = VECTOR_NUMBER_GPT1_COMPARE_F,
+#else
+    .compare_match_f_irq   = FSP_INVALID_VECTOR,
+#endif
+     .compare_match_value = { (uint32_t)0x0, /* CMP_A */(uint32_t)0x0, /* CMP_B */(uint32_t)0x0, /* CMP_C */(uint32_t)0x0, /* CMP_D */(uint32_t)0x0, /* CMP_E */(uint32_t)0x0, /* CMP_F */ }, .compare_match_status = ((0U << 5U) | (0U << 4U) | (0U << 3U) | (0U << 2U) | (0U << 1U) | 0U),
+    .capture_filter_gtioca = GPT_CAPTURE_FILTER_NONE,
+    .capture_filter_gtiocb = GPT_CAPTURE_FILTER_NONE,
+#if 0
+    .p_pwm_cfg             = &g_timer1_pwm_extend,
+#else
+    .p_pwm_cfg             = NULL,
 #endif
 #if 0
     .gtior_setting.gtior_b.gtioa  = (0U << 4U) | (0U << 2U) | (0U << 0U),
@@ -3684,6 +3818,9 @@ const gpt_extended_cfg_t g_timer1_extend =
 #else
     .gtior_setting.gtior = 0U,
 #endif
+
+    .gtioca_polarity = GPT_GTIOC_POLARITY_NORMAL,
+    .gtiocb_polarity = GPT_GTIOC_POLARITY_NORMAL,
 };
 
 const timer_cfg_t g_timer1_cfg =
@@ -3717,22 +3854,22 @@ gpt_instance_ctrl_t g_timer0_ctrl;
 #if 0
 const gpt_extended_pwm_cfg_t g_timer0_pwm_extend =
 {
-    .trough_ipl          = (BSP_IRQ_DISABLED),
+    .trough_ipl             = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT0_COUNTER_UNDERFLOW)
-    .trough_irq          = VECTOR_NUMBER_GPT0_COUNTER_UNDERFLOW,
+    .trough_irq             = VECTOR_NUMBER_GPT0_COUNTER_UNDERFLOW,
 #else
-    .trough_irq          = FSP_INVALID_VECTOR,
+    .trough_irq             = FSP_INVALID_VECTOR,
 #endif
-    .poeg_link           = GPT_POEG_LINK_POEG0,
-    .output_disable      = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
-    .adc_trigger         = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
-    .dead_time_count_up  = 0,
-    .dead_time_count_down = 0,
-    .adc_a_compare_match = 0,
-    .adc_b_compare_match = 0,
-    .interrupt_skip_source = GPT_INTERRUPT_SKIP_SOURCE_NONE,
-    .interrupt_skip_count  = GPT_INTERRUPT_SKIP_COUNT_0,
-    .interrupt_skip_adc    = GPT_INTERRUPT_SKIP_ADC_NONE,
+    .poeg_link              = GPT_POEG_LINK_POEG0,
+    .output_disable         = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
+    .adc_trigger            = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
+    .dead_time_count_up     = 0,
+    .dead_time_count_down   = 0,
+    .adc_a_compare_match    = 0,
+    .adc_b_compare_match    = 0,
+    .interrupt_skip_source  = GPT_INTERRUPT_SKIP_SOURCE_NONE,
+    .interrupt_skip_count   = GPT_INTERRUPT_SKIP_COUNT_0,
+    .interrupt_skip_adc     = GPT_INTERRUPT_SKIP_ADC_NONE,
     .gtioca_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
     .gtiocb_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
 };
@@ -3754,23 +3891,47 @@ const gpt_extended_cfg_t g_timer0_extend =
     .capture_b_source    = (gpt_source_t) ( GPT_SOURCE_NONE),
     .capture_a_ipl       = (BSP_IRQ_DISABLED),
     .capture_b_ipl       = (BSP_IRQ_DISABLED),
+    .compare_match_c_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_d_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_e_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_f_ipl = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT0_CAPTURE_COMPARE_A)
-    .capture_a_irq       = VECTOR_NUMBER_GPT0_CAPTURE_COMPARE_A,
+    .capture_a_irq         = VECTOR_NUMBER_GPT0_CAPTURE_COMPARE_A,
 #else
-    .capture_a_irq       = FSP_INVALID_VECTOR,
+    .capture_a_irq         = FSP_INVALID_VECTOR,
 #endif
 #if defined(VECTOR_NUMBER_GPT0_CAPTURE_COMPARE_B)
-    .capture_b_irq       = VECTOR_NUMBER_GPT0_CAPTURE_COMPARE_B,
+    .capture_b_irq         = VECTOR_NUMBER_GPT0_CAPTURE_COMPARE_B,
 #else
-    .capture_b_irq       = FSP_INVALID_VECTOR,
+    .capture_b_irq         = FSP_INVALID_VECTOR,
 #endif
-     .compare_match_value = { /* CMP_A */ (uint32_t)0x0, /* CMP_B */ (uint32_t)0x0}, .compare_match_status = (0U << 1U) | 0U,
-    .capture_filter_gtioca       = GPT_CAPTURE_FILTER_NONE,
-    .capture_filter_gtiocb       = GPT_CAPTURE_FILTER_NONE,
-#if 0
-    .p_pwm_cfg                   = &g_timer0_pwm_extend,
+#if defined(VECTOR_NUMBER_GPT0_COMPARE_C)
+    .compare_match_c_irq   = VECTOR_NUMBER_GPT0_COMPARE_C,
 #else
-    .p_pwm_cfg                   = NULL,
+    .compare_match_c_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT0_COMPARE_D)
+    .compare_match_d_irq   = VECTOR_NUMBER_GPT0_COMPARE_D,
+#else
+    .compare_match_d_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT0_COMPARE_E)
+    .compare_match_e_irq   = VECTOR_NUMBER_GPT0_COMPARE_E,
+#else
+    .compare_match_e_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT0_COMPARE_F)
+    .compare_match_f_irq   = VECTOR_NUMBER_GPT0_COMPARE_F,
+#else
+    .compare_match_f_irq   = FSP_INVALID_VECTOR,
+#endif
+     .compare_match_value = { (uint32_t)0x0, /* CMP_A */(uint32_t)0x0, /* CMP_B */(uint32_t)0x0, /* CMP_C */(uint32_t)0x0, /* CMP_D */(uint32_t)0x0, /* CMP_E */(uint32_t)0x0, /* CMP_F */ }, .compare_match_status = ((0U << 5U) | (0U << 4U) | (0U << 3U) | (0U << 2U) | (0U << 1U) | 0U),
+    .capture_filter_gtioca = GPT_CAPTURE_FILTER_NONE,
+    .capture_filter_gtiocb = GPT_CAPTURE_FILTER_NONE,
+#if 0
+    .p_pwm_cfg             = &g_timer0_pwm_extend,
+#else
+    .p_pwm_cfg             = NULL,
 #endif
 #if 0
     .gtior_setting.gtior_b.gtioa  = (0U << 4U) | (0U << 2U) | (0U << 0U),
@@ -3790,6 +3951,9 @@ const gpt_extended_cfg_t g_timer0_extend =
 #else
     .gtior_setting.gtior = 0U,
 #endif
+
+    .gtioca_polarity = GPT_GTIOC_POLARITY_NORMAL,
+    .gtiocb_polarity = GPT_GTIOC_POLARITY_NORMAL,
 };
 
 const timer_cfg_t g_timer0_cfg =
@@ -3845,7 +4009,8 @@ sci_b_uart_instance_ctrl_t     g_uart9_ctrl;
                     .polarity = SCI_B_UART_RS485_DE_POLARITY_HIGH,
                     .assertion_time = 1,
                     .negation_time = 1,
-                }
+                },
+                .delay_cycles = 0,
             };
 
             /** UART interface configuration */
@@ -3904,27 +4069,48 @@ const uart_instance_t g_uart9 =
     .p_api         = &g_uart_on_sci_b
 };
 rmac_instance_ctrl_t g_ether0_ctrl;
+            static rmac_buffer_node_t g_ether0_buffer_node_list[24];
 
-        	uint8_t g_ether0_mac_address[6] = { 0x00,0x11,0x22,0x33,0x44,0x55 };
+            uint8_t g_ether0_mac_address[6] = { 0x00,0x11,0x22,0x33,0x44,0x55 };
 
-            layer3_switch_descriptor_t           g_ether0_tx_descriptor_array0[16];rmac_queue_info_t g_ether0_tx_queue_list[1] =
+            layer3_switch_ts_reception_process_descriptor_t g_ether0_ts_descriptor_array0[8];rmac_queue_info_t g_ether0_ts_queue[1] =
  {
-{ .queue_cfg={.array_length       = 16,
+{ .queue_cfg={.array_length          = 8,
+.p_descriptor_array    = NULL,
+.p_ts_descriptor_array = g_ether0_ts_descriptor_array0,
+.ports                 = (1 << 1),
+.type                  = LAYER3_SWITCH_QUEUE_TYPE_TX,
+.write_back_mode       = LAYER3_SWITCH_WRITE_BACK_MODE_FULL,
+.descriptor_format     = LAYER3_SWITCH_DISCRIPTOR_FORMTAT_TX_TIMESTAMP,
+.rx_timestamp_storage  = LAYER3_SWITCH_RX_TIMESTAMP_STORAGE_DISABLE,
+}},
+};
+            layer3_switch_descriptor_t           g_ether0_tx_descriptor_array0[16+1];rmac_queue_info_t g_ether0_tx_queue_list[1] =
+ {
+{ .queue_cfg={.array_length       = 16+1,
 .p_descriptor_array = g_ether0_tx_descriptor_array0,
+.p_ts_descriptor_array = NULL,
 .ports              = (1 << 1 ),
 .type               = LAYER3_SWITCH_QUEUE_TYPE_TX,
 .write_back_mode    = LAYER3_SWITCH_WRITE_BACK_MODE_FULL,
 .descriptor_format  = LAYER3_SWITCH_DISCRIPTOR_FORMTAT_EXTENDED,
+.rx_timestamp_storage = LAYER3_SWITCH_RX_TIMESTAMP_STORAGE_DISABLE,
 }},
 };
-            layer3_switch_descriptor_t           g_ether0_rx_descriptor_array0[48];rmac_queue_info_t g_ether0_rx_queue_list[1] =
+            layer3_switch_descriptor_t           g_ether0_rx_descriptor_array0[48+1];rmac_queue_info_t g_ether0_rx_queue_list[1] =
  {
-{ .queue_cfg={.array_length       = 48,
+{ .queue_cfg={.array_length       = 48+1,
 .p_descriptor_array = g_ether0_rx_descriptor_array0,
-.ports              = (1 << 1),
+.p_ts_descriptor_array = NULL,
+.ports              = (1 << 1) | (0x0),
 .type               = LAYER3_SWITCH_QUEUE_TYPE_RX,
 .write_back_mode    = LAYER3_SWITCH_WRITE_BACK_MODE_FULL,
 .descriptor_format  = LAYER3_SWITCH_DISCRIPTOR_FORMTAT_EXTENDED,
+#if LAYER3_SWITCH_CFG_GPTP_ENABLE
+.rx_timestamp_storage = LAYER3_SWITCH_RX_TIMESTAMP_STORAGE_ENABLE,
+#else
+.rx_timestamp_storage = LAYER3_SWITCH_RX_TIMESTAMP_STORAGE_DISABLE,
+#endif
 }},
 };
 
@@ -3934,6 +4120,7 @@ rmac_instance_ctrl_t g_ether0_ctrl;
                 .tx_queue_num        = 1,
                 .rx_queue_num        = 1,
 
+                .p_ts_queue     = g_ether0_ts_queue,
                 .p_tx_queue_list     = g_ether0_tx_queue_list,
                 .p_rx_queue_list     = g_ether0_rx_queue_list,
 #if defined(VECTOR_NUMBER_ETHER_RMPI1)
@@ -3942,6 +4129,9 @@ rmac_instance_ctrl_t g_ether0_ctrl;
                 .rmpi_irq                = FSP_INVALID_VECTOR,
 #endif
                 .rmpi_ipl                = (BSP_IRQ_DISABLED),
+                .p_buffer_node_list      = g_ether0_buffer_node_list,
+                .buffer_node_num         = 24,
+                .transmission_descriptor_format       = RMAC_TRANSMISSION_DESCRIPTOR_FORMAT_DIRECT,
             };
             uint8_t g_ether0_ether_buffer0[1536];
 uint8_t g_ether0_ether_buffer1[1536];
@@ -3967,46 +4157,8 @@ uint8_t g_ether0_ether_buffer20[1536];
 uint8_t g_ether0_ether_buffer21[1536];
 uint8_t g_ether0_ether_buffer22[1536];
 uint8_t g_ether0_ether_buffer23[1536];
-uint8_t g_ether0_ether_buffer24[1536];
-uint8_t g_ether0_ether_buffer25[1536];
-uint8_t g_ether0_ether_buffer26[1536];
-uint8_t g_ether0_ether_buffer27[1536];
-uint8_t g_ether0_ether_buffer28[1536];
-uint8_t g_ether0_ether_buffer29[1536];
-uint8_t g_ether0_ether_buffer30[1536];
-uint8_t g_ether0_ether_buffer31[1536];
-uint8_t g_ether0_ether_buffer32[1536];
-uint8_t g_ether0_ether_buffer33[1536];
-uint8_t g_ether0_ether_buffer34[1536];
-uint8_t g_ether0_ether_buffer35[1536];
-uint8_t g_ether0_ether_buffer36[1536];
-uint8_t g_ether0_ether_buffer37[1536];
-uint8_t g_ether0_ether_buffer38[1536];
-uint8_t g_ether0_ether_buffer39[1536];
-uint8_t g_ether0_ether_buffer40[1536];
-uint8_t g_ether0_ether_buffer41[1536];
-uint8_t g_ether0_ether_buffer42[1536];
-uint8_t g_ether0_ether_buffer43[1536];
-uint8_t g_ether0_ether_buffer44[1536];
-uint8_t g_ether0_ether_buffer45[1536];
-uint8_t g_ether0_ether_buffer46[1536];
-uint8_t g_ether0_ether_buffer47[1536];
-uint8_t g_ether0_ether_buffer48[1536];
-uint8_t g_ether0_ether_buffer49[1536];
-uint8_t g_ether0_ether_buffer50[1536];
-uint8_t g_ether0_ether_buffer51[1536];
-uint8_t g_ether0_ether_buffer52[1536];
-uint8_t g_ether0_ether_buffer53[1536];
-uint8_t g_ether0_ether_buffer54[1536];
-uint8_t g_ether0_ether_buffer55[1536];
-uint8_t g_ether0_ether_buffer56[1536];
-uint8_t g_ether0_ether_buffer57[1536];
-uint8_t g_ether0_ether_buffer58[1536];
-uint8_t g_ether0_ether_buffer59[1536];
-uint8_t g_ether0_ether_buffer60[1536];
-uint8_t g_ether0_ether_buffer61[1536];
 
-            uint8_t *pp_g_ether0_ether_buffers[62] = {
+            uint8_t *pp_g_ether0_ether_buffers[24] = {
 (uint8_t *) &g_ether0_ether_buffer0[0],
 (uint8_t *) &g_ether0_ether_buffer1[0],
 (uint8_t *) &g_ether0_ether_buffer2[0],
@@ -4031,44 +4183,6 @@ uint8_t g_ether0_ether_buffer61[1536];
 (uint8_t *) &g_ether0_ether_buffer21[0],
 (uint8_t *) &g_ether0_ether_buffer22[0],
 (uint8_t *) &g_ether0_ether_buffer23[0],
-(uint8_t *) &g_ether0_ether_buffer24[0],
-(uint8_t *) &g_ether0_ether_buffer25[0],
-(uint8_t *) &g_ether0_ether_buffer26[0],
-(uint8_t *) &g_ether0_ether_buffer27[0],
-(uint8_t *) &g_ether0_ether_buffer28[0],
-(uint8_t *) &g_ether0_ether_buffer29[0],
-(uint8_t *) &g_ether0_ether_buffer30[0],
-(uint8_t *) &g_ether0_ether_buffer31[0],
-(uint8_t *) &g_ether0_ether_buffer32[0],
-(uint8_t *) &g_ether0_ether_buffer33[0],
-(uint8_t *) &g_ether0_ether_buffer34[0],
-(uint8_t *) &g_ether0_ether_buffer35[0],
-(uint8_t *) &g_ether0_ether_buffer36[0],
-(uint8_t *) &g_ether0_ether_buffer37[0],
-(uint8_t *) &g_ether0_ether_buffer38[0],
-(uint8_t *) &g_ether0_ether_buffer39[0],
-(uint8_t *) &g_ether0_ether_buffer40[0],
-(uint8_t *) &g_ether0_ether_buffer41[0],
-(uint8_t *) &g_ether0_ether_buffer42[0],
-(uint8_t *) &g_ether0_ether_buffer43[0],
-(uint8_t *) &g_ether0_ether_buffer44[0],
-(uint8_t *) &g_ether0_ether_buffer45[0],
-(uint8_t *) &g_ether0_ether_buffer46[0],
-(uint8_t *) &g_ether0_ether_buffer47[0],
-(uint8_t *) &g_ether0_ether_buffer48[0],
-(uint8_t *) &g_ether0_ether_buffer49[0],
-(uint8_t *) &g_ether0_ether_buffer50[0],
-(uint8_t *) &g_ether0_ether_buffer51[0],
-(uint8_t *) &g_ether0_ether_buffer52[0],
-(uint8_t *) &g_ether0_ether_buffer53[0],
-(uint8_t *) &g_ether0_ether_buffer54[0],
-(uint8_t *) &g_ether0_ether_buffer55[0],
-(uint8_t *) &g_ether0_ether_buffer56[0],
-(uint8_t *) &g_ether0_ether_buffer57[0],
-(uint8_t *) &g_ether0_ether_buffer58[0],
-(uint8_t *) &g_ether0_ether_buffer59[0],
-(uint8_t *) &g_ether0_ether_buffer60[0],
-(uint8_t *) &g_ether0_ether_buffer61[0],
 };
             const ether_cfg_t g_ether0_cfg =
             {
@@ -4082,8 +4196,8 @@ uint8_t g_ether0_ether_buffer61[1536];
                 .broadcast_filter   = 0,
                 .p_mac_address      = g_ether0_mac_address,
 
-                .num_tx_descriptors = 15,
-                .num_rx_descriptors = 47,
+                .num_tx_descriptors = 12,
+                .num_rx_descriptors = 12,
 
                 .pp_ether_buffers   = pp_g_ether0_ether_buffers,
 
@@ -4107,22 +4221,22 @@ gpt_instance_ctrl_t g_timer7_ctrl;
 #if 0
 const gpt_extended_pwm_cfg_t g_timer7_pwm_extend =
 {
-    .trough_ipl          = (BSP_IRQ_DISABLED),
+    .trough_ipl             = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT7_COUNTER_UNDERFLOW)
-    .trough_irq          = VECTOR_NUMBER_GPT7_COUNTER_UNDERFLOW,
+    .trough_irq             = VECTOR_NUMBER_GPT7_COUNTER_UNDERFLOW,
 #else
-    .trough_irq          = FSP_INVALID_VECTOR,
+    .trough_irq             = FSP_INVALID_VECTOR,
 #endif
-    .poeg_link           = GPT_POEG_LINK_POEG0,
-    .output_disable      = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
-    .adc_trigger         = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
-    .dead_time_count_up  = 0,
-    .dead_time_count_down = 0,
-    .adc_a_compare_match = 0,
-    .adc_b_compare_match = 0,
-    .interrupt_skip_source = GPT_INTERRUPT_SKIP_SOURCE_NONE,
-    .interrupt_skip_count  = GPT_INTERRUPT_SKIP_COUNT_0,
-    .interrupt_skip_adc    = GPT_INTERRUPT_SKIP_ADC_NONE,
+    .poeg_link              = GPT_POEG_LINK_POEG0,
+    .output_disable         = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
+    .adc_trigger            = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
+    .dead_time_count_up     = 0,
+    .dead_time_count_down   = 0,
+    .adc_a_compare_match    = 0,
+    .adc_b_compare_match    = 0,
+    .interrupt_skip_source  = GPT_INTERRUPT_SKIP_SOURCE_NONE,
+    .interrupt_skip_count   = GPT_INTERRUPT_SKIP_COUNT_0,
+    .interrupt_skip_adc     = GPT_INTERRUPT_SKIP_ADC_NONE,
     .gtioca_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
     .gtiocb_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
 };
@@ -4144,23 +4258,47 @@ const gpt_extended_cfg_t g_timer7_extend =
     .capture_b_source    = (gpt_source_t) ( GPT_SOURCE_NONE),
     .capture_a_ipl       = (BSP_IRQ_DISABLED),
     .capture_b_ipl       = (BSP_IRQ_DISABLED),
+    .compare_match_c_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_d_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_e_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_f_ipl = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT7_CAPTURE_COMPARE_A)
-    .capture_a_irq       = VECTOR_NUMBER_GPT7_CAPTURE_COMPARE_A,
+    .capture_a_irq         = VECTOR_NUMBER_GPT7_CAPTURE_COMPARE_A,
 #else
-    .capture_a_irq       = FSP_INVALID_VECTOR,
+    .capture_a_irq         = FSP_INVALID_VECTOR,
 #endif
 #if defined(VECTOR_NUMBER_GPT7_CAPTURE_COMPARE_B)
-    .capture_b_irq       = VECTOR_NUMBER_GPT7_CAPTURE_COMPARE_B,
+    .capture_b_irq         = VECTOR_NUMBER_GPT7_CAPTURE_COMPARE_B,
 #else
-    .capture_b_irq       = FSP_INVALID_VECTOR,
+    .capture_b_irq         = FSP_INVALID_VECTOR,
 #endif
-     .compare_match_value = { /* CMP_A */ (uint32_t)0x0, /* CMP_B */ (uint32_t)0x0}, .compare_match_status = (0U << 1U) | 0U,
-    .capture_filter_gtioca       = GPT_CAPTURE_FILTER_NONE,
-    .capture_filter_gtiocb       = GPT_CAPTURE_FILTER_NONE,
-#if 0
-    .p_pwm_cfg                   = &g_timer7_pwm_extend,
+#if defined(VECTOR_NUMBER_GPT7_COMPARE_C)
+    .compare_match_c_irq   = VECTOR_NUMBER_GPT7_COMPARE_C,
 #else
-    .p_pwm_cfg                   = NULL,
+    .compare_match_c_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT7_COMPARE_D)
+    .compare_match_d_irq   = VECTOR_NUMBER_GPT7_COMPARE_D,
+#else
+    .compare_match_d_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT7_COMPARE_E)
+    .compare_match_e_irq   = VECTOR_NUMBER_GPT7_COMPARE_E,
+#else
+    .compare_match_e_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT7_COMPARE_F)
+    .compare_match_f_irq   = VECTOR_NUMBER_GPT7_COMPARE_F,
+#else
+    .compare_match_f_irq   = FSP_INVALID_VECTOR,
+#endif
+     .compare_match_value = { (uint32_t)0x0, /* CMP_A */(uint32_t)0x0, /* CMP_B */(uint32_t)0x0, /* CMP_C */(uint32_t)0x0, /* CMP_D */(uint32_t)0x0, /* CMP_E */(uint32_t)0x0, /* CMP_F */ }, .compare_match_status = ((0U << 5U) | (0U << 4U) | (0U << 3U) | (0U << 2U) | (0U << 1U) | 0U),
+    .capture_filter_gtioca = GPT_CAPTURE_FILTER_NONE,
+    .capture_filter_gtiocb = GPT_CAPTURE_FILTER_NONE,
+#if 0
+    .p_pwm_cfg             = &g_timer7_pwm_extend,
+#else
+    .p_pwm_cfg             = NULL,
 #endif
 #if 0
     .gtior_setting.gtior_b.gtioa  = (0U << 4U) | (0U << 2U) | (0U << 0U),
@@ -4180,6 +4318,9 @@ const gpt_extended_cfg_t g_timer7_extend =
 #else
     .gtior_setting.gtior = 0U,
 #endif
+
+    .gtioca_polarity = GPT_GTIOC_POLARITY_NORMAL,
+    .gtiocb_polarity = GPT_GTIOC_POLARITY_NORMAL,
 };
 
 const timer_cfg_t g_timer7_cfg =
@@ -4293,7 +4434,8 @@ sci_b_uart_instance_ctrl_t     g_uart8_ctrl;
                     .polarity = SCI_B_UART_RS485_DE_POLARITY_HIGH,
                     .assertion_time = 1,
                     .negation_time = 1,
-                }
+                },
+                .delay_cycles = 0,
             };
 
             /** UART interface configuration */
@@ -4351,6 +4493,7 @@ const uart_instance_t g_uart8 =
     .p_cfg         = &g_uart8_cfg,
     .p_api         = &g_uart_on_sci_b
 };
+
 dmac_instance_ctrl_t g_transfer3_ctrl;
 transfer_info_t g_transfer3_info =
 {
@@ -4393,6 +4536,7 @@ const transfer_instance_t g_transfer3 =
     .p_cfg         = &g_transfer3_cfg,
     .p_api         = &g_transfer_on_dmac
 };
+
 ospi_b_instance_ctrl_t g_ospi1_ctrl;
 
 static ospi_b_timing_setting_t g_ospi1_timing_settings =
@@ -4417,6 +4561,7 @@ static const ospi_b_table_t g_ospi1_command_set_initial_erase_table =
     .p_table = (void *) g_ospi1_command_set_initial_erase_commands,
     .length = sizeof(g_ospi1_command_set_initial_erase_commands)/sizeof(g_ospi1_command_set_initial_erase_commands[0]),
 };
+
 static const spi_flash_erase_command_t g_ospi1_command_set_high_speed_erase_commands[] =
 {
     { .command = 0, .size = 0 },
@@ -4515,7 +4660,7 @@ static const ospi_b_extended_cfg_t g_ospi1_extended_cfg =
     .p_dotf_cfg                              = &g_ospi_dotf_cfg,
 #endif
 #if OSPI_B_CFG_ROW_ADDRESSING_SUPPORT_ENABLE
-    .row_index_bytes                         = 0xFF
+    .row_index_bytes                         = 0xFF,
 #endif
 };
 const spi_flash_cfg_t g_ospi1_cfg =
@@ -4539,8 +4684,9 @@ const spi_flash_cfg_t g_ospi1_cfg =
     .xip_enter_command           = 0U,
     .xip_exit_command            = 0U,
 #endif
-    .erase_command_list_length   = 0U,   /* OSPI_B uses command sets. See g_ospi1_command_set. */
-    .p_erase_command_list        = NULL, /* OSPI_B uses command sets. See g_ospi1_command_set. */
+    /* OSPI_B uses command sets, this is kept for backwards compatibility. See g_ospi1_command_set. */
+    .erase_command_list_length   = sizeof(g_ospi1_command_set_initial_erase_commands)/sizeof(g_ospi1_command_set_initial_erase_commands[0]),
+    .p_erase_command_list        = g_ospi1_command_set_initial_erase_commands,
     .p_extend                    = &g_ospi1_extended_cfg,
 };
 
@@ -4555,6 +4701,7 @@ const spi_flash_instance_t g_ospi1 =
 #if defined OSPI_B_CFG_DOTF_PROTECTED_MODE_SUPPORT_ENABLE
 rsip_instance_t const * const gp_rsip_instance = &RA_NOT_DEFINED;
 #endif
+
 dmac_instance_ctrl_t g_transfer2_ctrl;
 transfer_info_t g_transfer2_info =
 {
@@ -4653,6 +4800,7 @@ const sdmmc_instance_t g_sdmmc0 =
     .p_cfg         = &g_sdmmc0_cfg,
     .p_api         = &g_sdmmc_on_sdhi
 };
+
 dmac_instance_ctrl_t g_transfer1_ctrl;
 transfer_info_t g_transfer1_info =
 {
@@ -4755,22 +4903,22 @@ gpt_instance_ctrl_t g_timer_ctrl;
 #if 0
 const gpt_extended_pwm_cfg_t g_timer_pwm_extend =
 {
-    .trough_ipl          = (BSP_IRQ_DISABLED),
+    .trough_ipl             = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT3_COUNTER_UNDERFLOW)
-    .trough_irq          = VECTOR_NUMBER_GPT3_COUNTER_UNDERFLOW,
+    .trough_irq             = VECTOR_NUMBER_GPT3_COUNTER_UNDERFLOW,
 #else
-    .trough_irq          = FSP_INVALID_VECTOR,
+    .trough_irq             = FSP_INVALID_VECTOR,
 #endif
-    .poeg_link           = GPT_POEG_LINK_POEG0,
-    .output_disable      = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
-    .adc_trigger         = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
-    .dead_time_count_up  = 0,
-    .dead_time_count_down = 0,
-    .adc_a_compare_match = 0,
-    .adc_b_compare_match = 0,
-    .interrupt_skip_source = GPT_INTERRUPT_SKIP_SOURCE_NONE,
-    .interrupt_skip_count  = GPT_INTERRUPT_SKIP_COUNT_0,
-    .interrupt_skip_adc    = GPT_INTERRUPT_SKIP_ADC_NONE,
+    .poeg_link              = GPT_POEG_LINK_POEG0,
+    .output_disable         = (gpt_output_disable_t) ( GPT_OUTPUT_DISABLE_NONE),
+    .adc_trigger            = (gpt_adc_trigger_t) ( GPT_ADC_TRIGGER_NONE),
+    .dead_time_count_up     = 0,
+    .dead_time_count_down   = 0,
+    .adc_a_compare_match    = 0,
+    .adc_b_compare_match    = 0,
+    .interrupt_skip_source  = GPT_INTERRUPT_SKIP_SOURCE_NONE,
+    .interrupt_skip_count   = GPT_INTERRUPT_SKIP_COUNT_0,
+    .interrupt_skip_adc     = GPT_INTERRUPT_SKIP_ADC_NONE,
     .gtioca_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
     .gtiocb_disable_setting = GPT_GTIOC_DISABLE_PROHIBITED,
 };
@@ -4792,23 +4940,47 @@ const gpt_extended_cfg_t g_timer_extend =
     .capture_b_source    = (gpt_source_t) ( GPT_SOURCE_NONE),
     .capture_a_ipl       = (BSP_IRQ_DISABLED),
     .capture_b_ipl       = (BSP_IRQ_DISABLED),
+    .compare_match_c_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_d_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_e_ipl = (BSP_IRQ_DISABLED),
+    .compare_match_f_ipl = (BSP_IRQ_DISABLED),
 #if defined(VECTOR_NUMBER_GPT3_CAPTURE_COMPARE_A)
-    .capture_a_irq       = VECTOR_NUMBER_GPT3_CAPTURE_COMPARE_A,
+    .capture_a_irq         = VECTOR_NUMBER_GPT3_CAPTURE_COMPARE_A,
 #else
-    .capture_a_irq       = FSP_INVALID_VECTOR,
+    .capture_a_irq         = FSP_INVALID_VECTOR,
 #endif
 #if defined(VECTOR_NUMBER_GPT3_CAPTURE_COMPARE_B)
-    .capture_b_irq       = VECTOR_NUMBER_GPT3_CAPTURE_COMPARE_B,
+    .capture_b_irq         = VECTOR_NUMBER_GPT3_CAPTURE_COMPARE_B,
 #else
-    .capture_b_irq       = FSP_INVALID_VECTOR,
+    .capture_b_irq         = FSP_INVALID_VECTOR,
 #endif
-     .compare_match_value = { /* CMP_A */ (uint32_t)0x0, /* CMP_B */ (uint32_t)0x0}, .compare_match_status = (0U << 1U) | 0U,
-    .capture_filter_gtioca       = GPT_CAPTURE_FILTER_NONE,
-    .capture_filter_gtiocb       = GPT_CAPTURE_FILTER_NONE,
-#if 0
-    .p_pwm_cfg                   = &g_timer_pwm_extend,
+#if defined(VECTOR_NUMBER_GPT3_COMPARE_C)
+    .compare_match_c_irq   = VECTOR_NUMBER_GPT3_COMPARE_C,
 #else
-    .p_pwm_cfg                   = NULL,
+    .compare_match_c_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT3_COMPARE_D)
+    .compare_match_d_irq   = VECTOR_NUMBER_GPT3_COMPARE_D,
+#else
+    .compare_match_d_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT3_COMPARE_E)
+    .compare_match_e_irq   = VECTOR_NUMBER_GPT3_COMPARE_E,
+#else
+    .compare_match_e_irq   = FSP_INVALID_VECTOR,
+#endif
+#if defined(VECTOR_NUMBER_GPT3_COMPARE_F)
+    .compare_match_f_irq   = VECTOR_NUMBER_GPT3_COMPARE_F,
+#else
+    .compare_match_f_irq   = FSP_INVALID_VECTOR,
+#endif
+     .compare_match_value = { (uint32_t)0x0, /* CMP_A */(uint32_t)0x0, /* CMP_B */(uint32_t)0x0, /* CMP_C */(uint32_t)0x0, /* CMP_D */(uint32_t)0x0, /* CMP_E */(uint32_t)0x0, /* CMP_F */ }, .compare_match_status = ((0U << 5U) | (0U << 4U) | (0U << 3U) | (0U << 2U) | (0U << 1U) | 0U),
+    .capture_filter_gtioca = GPT_CAPTURE_FILTER_NONE,
+    .capture_filter_gtiocb = GPT_CAPTURE_FILTER_NONE,
+#if 0
+    .p_pwm_cfg             = &g_timer_pwm_extend,
+#else
+    .p_pwm_cfg             = NULL,
 #endif
 #if 0
     .gtior_setting.gtior_b.gtioa  = (0U << 4U) | (0U << 2U) | (0U << 0U),
@@ -4828,6 +5000,9 @@ const gpt_extended_cfg_t g_timer_extend =
 #else
     .gtior_setting.gtior = 0U,
 #endif
+
+    .gtioca_polarity = GPT_GTIOC_POLARITY_NORMAL,
+    .gtiocb_polarity = GPT_GTIOC_POLARITY_NORMAL,
 };
 
 const timer_cfg_t g_timer_cfg =
@@ -4857,6 +5032,7 @@ const timer_instance_t g_timer =
     .p_cfg         = &g_timer_cfg,
     .p_api         = &g_timer_on_gpt
 };
+
 dmac_instance_ctrl_t g_transfer0_ctrl;
 transfer_info_t g_transfer0_info =
 {
@@ -4899,6 +5075,7 @@ const transfer_instance_t g_transfer0 =
     .p_cfg         = &g_transfer0_cfg,
     .p_api         = &g_transfer_on_dmac
 };
+
 ospi_b_instance_ctrl_t g_ospi_b_ctrl;
 
 static ospi_b_timing_setting_t g_ospi_b_timing_settings =
@@ -4923,6 +5100,7 @@ static const ospi_b_table_t g_ospi_b_command_set_initial_erase_table =
     .p_table = (void *) g_ospi_b_command_set_initial_erase_commands,
     .length = sizeof(g_ospi_b_command_set_initial_erase_commands)/sizeof(g_ospi_b_command_set_initial_erase_commands[0]),
 };
+
 static const spi_flash_erase_command_t g_ospi_b_command_set_high_speed_erase_commands[] =
 {
     { .command = 0x2121, .size = 4096 },
@@ -5021,7 +5199,7 @@ static const ospi_b_extended_cfg_t g_ospi_b_extended_cfg =
     .p_dotf_cfg                              = &g_ospi_dotf_cfg,
 #endif
 #if OSPI_B_CFG_ROW_ADDRESSING_SUPPORT_ENABLE
-    .row_index_bytes                         = 0xFF
+    .row_index_bytes                         = 0xFF,
 #endif
 };
 const spi_flash_cfg_t g_ospi_b_cfg =
@@ -5045,8 +5223,9 @@ const spi_flash_cfg_t g_ospi_b_cfg =
     .xip_enter_command           = 0U,
     .xip_exit_command            = 0U,
 #endif
-    .erase_command_list_length   = 0U,   /* OSPI_B uses command sets. See g_ospi_b_command_set. */
-    .p_erase_command_list        = NULL, /* OSPI_B uses command sets. See g_ospi_b_command_set. */
+    /* OSPI_B uses command sets, this is kept for backwards compatibility. See g_ospi_b_command_set. */
+    .erase_command_list_length   = sizeof(g_ospi_b_command_set_initial_erase_commands)/sizeof(g_ospi_b_command_set_initial_erase_commands[0]),
+    .p_erase_command_list        = g_ospi_b_command_set_initial_erase_commands,
     .p_extend                    = &g_ospi_b_extended_cfg,
 };
 
@@ -5087,7 +5266,8 @@ sci_b_uart_instance_ctrl_t     g_uart0_ctrl;
                     .polarity = SCI_B_UART_RS485_DE_POLARITY_HIGH,
                     .assertion_time = 1,
                     .negation_time = 1,
-                }
+                },
+                .delay_cycles = 0,
             };
 
             /** UART interface configuration */
@@ -5225,7 +5405,8 @@ sci_b_uart_instance_ctrl_t     g_uart5_ctrl;
                     .polarity = SCI_B_UART_RS485_DE_POLARITY_HIGH,
                     .assertion_time = 1,
                     .negation_time = 1,
-                }
+                },
+                .delay_cycles = 0,
             };
 
             /** UART interface configuration */

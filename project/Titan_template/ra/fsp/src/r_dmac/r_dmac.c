@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Renesas Electronics Corporation and/or its affiliates
+* Copyright (c) 2020 - 2026 Renesas Electronics Corporation and/or its affiliates
 *
 * SPDX-License-Identifier: BSD-3-Clause
 */
@@ -198,6 +198,7 @@ fsp_err_t R_DMAC_Open (transfer_ctrl_t * const p_api_ctrl, transfer_cfg_t const 
  * @retval FSP_ERR_ASSERTION        An input parameter is invalid.
  * @retval FSP_ERR_NOT_ENABLED      DMAC is not enabled. The current configuration must not be valid.
  * @retval FSP_ERR_NOT_OPEN         Handle is not initialized.  Call R_DMAC_Open to initialize the control block.
+ * @retval FSP_ERR_UNSUPPORTED      Transfer 8 byte is not supported.
  **********************************************************************************************************************/
 fsp_err_t R_DMAC_Reconfigure (transfer_ctrl_t * const p_api_ctrl, transfer_info_t * p_info)
 {
@@ -209,6 +210,13 @@ fsp_err_t R_DMAC_Reconfigure (transfer_ctrl_t * const p_api_ctrl, transfer_info_
     FSP_ERROR_RETURN(p_ctrl->open == DMAC_ID, FSP_ERR_NOT_OPEN);
     err = r_dmac_reconfigure_parameter_checking(p_info);
     FSP_ERROR_RETURN(FSP_SUCCESS == err, err);
+
+ #if !BSP_FEATURE_DMAC_SUPPORT_TRANSFER_8_BYTE
+    if (TRANSFER_SIZE_8_BYTE == p_info->transfer_settings_word_b.size)
+    {
+        return FSP_ERR_UNSUPPORTED;
+    }
+ #endif
 #endif
 
     /* Reconfigure the transfer settings. */
@@ -513,8 +521,8 @@ static void r_dmac_prv_disable (dmac_instance_ctrl_t * p_ctrl)
 {
     dmac_extended_cfg_t * p_extend = (dmac_extended_cfg_t *) p_ctrl->p_cfg->p_extend;
 
-    /* Disable the transfers. Reference Figure 17.12  "Register setting procedure" in the RA6M3 Hardware manual
-     * R01UH0886EJ0100. */
+    /* Disable the transfers. See table "Register setting procedure" in the DMAC section of the relevant
+     * hardware manual. */
 #if !BSP_FEATURE_DMAC_HAS_DELSR
     R_ICU->DELSR[p_extend->channel] = ELC_EVENT_NONE;
 #else
@@ -553,7 +561,7 @@ static void r_dmac_config_transfer_info (dmac_instance_ctrl_t * p_ctrl, transfer
     /* Disable transfers if they are currently enabled. */
     r_dmac_prv_disable(p_ctrl);
 
-    /* Configure the Transfer Data Size (1,2,4) bytes. */
+    /* Configure the Transfer Data Size (1,2,4,8) bytes. */
     dmtmd |= (uint32_t) (p_info->transfer_settings_word_b.size << DMAC_PRV_DMTMD_SZ_OFFSET);
 
     /* Configure source and destination address mode. */
@@ -604,7 +612,7 @@ static void r_dmac_config_transfer_info (dmac_instance_ctrl_t * p_ctrl, transfer
         /* Enable the transfer end escape interrupt requests.
          * Repeat size end and Extended Repeat area overflow requests are not
          * used with Repeat-Block mode. Reference section 16.2.9 "DMINT : DMA Interrupt Setting Register"
-         * of RA6M4 hardware manual R01UH0890EJ0110. */
+         * description in the DMAC section of the relevant hardware manual. */
         if ((TRANSFER_IRQ_EACH == p_info->transfer_settings_word_b.irq) &&
             (TRANSFER_MODE_REPEAT_BLOCK != p_info->transfer_settings_word_b.mode))
         {
@@ -695,7 +703,7 @@ static fsp_err_t r_dma_open_parameter_checking (dmac_instance_ctrl_t * const p_c
     FSP_ASSERT(NULL != p_cfg);
     dmac_extended_cfg_t * p_extend = (dmac_extended_cfg_t *) p_cfg->p_extend;
     FSP_ASSERT(NULL != p_cfg->p_extend);
-    FSP_ERROR_RETURN(p_extend->channel < BSP_FEATURE_DMAC_MAX_CHANNEL, FSP_ERR_IP_CHANNEL_NOT_PRESENT);
+    FSP_ERROR_RETURN(p_extend->channel < BSP_FEATURE_DMAC_NUM_CHANNELS, FSP_ERR_IP_CHANNEL_NOT_PRESENT);
 
     if (NULL != p_extend->p_callback)
     {
@@ -788,8 +796,8 @@ void dmac_int_isr (void)
     p_ctrl->p_callback(&args);
 
     /* Transfers are disabled during the interrupt if an interrupt is requested after each block or after each repeat
-     * length. If not all transfers are complete, reenable transfer here. See section 17.4.2 Transfer End by Repeat
-     * Size End Interrupt in the RA6M3 hardware manual R01UH0886EJ0100. */
+     * length. If not all transfers are complete, reenable transfer here. See "Transfer End by Repeat
+     * Size End Interrupt" in the DMAC section of the relevant hardware manual. */
     if (p_ctrl->p_reg->DMCRB > 0U)
     {
         p_ctrl->p_reg->DMCNT = 1;

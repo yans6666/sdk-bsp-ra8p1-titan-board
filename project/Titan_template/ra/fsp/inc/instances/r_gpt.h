@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Renesas Electronics Corporation and/or its affiliates
+* Copyright (c) 2020 - 2026 Renesas Electronics Corporation and/or its affiliates
 *
 * SPDX-License-Identifier: BSD-3-Clause
 */
@@ -316,6 +316,13 @@ typedef enum e_gpt_pwm_output_delay_edge
     GPT_PWM_OUTPUT_DELAY_EDGE_FALLING, ///< Configure the PWM Output Delay setting for falling edge.
 } gpt_pwm_output_delay_edge_t;
 
+/** Polarity inversion control for GTIOCnA/B pins. */
+typedef enum e_gpt_gtioc_polarity
+{
+    GPT_GTIOC_POLARITY_NORMAL   = 0U,  ///< GPTIOCnA/B pin polarity is not changed.
+    GPT_GTIOC_POLARITY_INVERTED = 1U,  ///< GPTIOCnA/B pin polarity is inverted.
+} gpt_gtioc_polarity_t;
+
 /** Channel control block. DO NOT INITIALIZE.  Initialization occurs when @ref timer_api_t::open is called. */
 typedef struct st_gpt_instance_ctrl
 {
@@ -374,16 +381,27 @@ typedef struct st_gpt_extended_cfg
     /* Debounce filter for GTIOCxB input signal pin. */
     gpt_capture_filter_t capture_filter_gtiocb;
 
-    uint8_t   capture_a_ipl;                      ///< Capture A interrupt priority
-    uint8_t   capture_b_ipl;                      ///< Capture B interrupt priority
-    IRQn_Type capture_a_irq;                      ///< Capture A interrupt
-    IRQn_Type capture_b_irq;                      ///< Capture B interrupt
+    uint8_t   capture_a_ipl;                      ///< Capture/Compare match A interrupt priority
+    uint8_t   capture_b_ipl;                      ///< Capture/Compare match B interrupt priority
+    uint8_t   compare_match_c_ipl;                ///< Compare match C interrupt priority
+    uint8_t   compare_match_d_ipl;                ///< Compare match D interrupt priority
+    uint8_t   compare_match_e_ipl;                ///< Compare match E interrupt priority
+    uint8_t   compare_match_f_ipl;                ///< Compare match F interrupt priority
+    IRQn_Type capture_a_irq;                      ///< Capture/Compare match A interrupt
+    IRQn_Type capture_b_irq;                      ///< Capture/Compare match B interrupt
+    IRQn_Type compare_match_c_irq;                ///< Compare match C interrupt
+    IRQn_Type compare_match_d_irq;                ///< Compare match D interrupt
+    IRQn_Type compare_match_e_irq;                ///< Compare match E interrupt
+    IRQn_Type compare_match_f_irq;                ///< Compare match F interrupt
 
-    uint32_t compare_match_value[2];              ///< Storing compare match value for channels
-    uint8_t  compare_match_status;                ///< Storing the compare match register status
+    uint32_t compare_match_value[6];              ///< Storing compare match value for channels.
+    uint8_t  compare_match_status;                ///< Storing the compare match registers status.
 
     gpt_extended_pwm_cfg_t const * p_pwm_cfg;     ///< Advanced PWM features, optional
     gpt_gtior_setting_t            gtior_setting; ///< Custom GTIOR settings used for configuring GTIOCxA and GTIOCxB pins.
+
+    gpt_gtioc_polarity_t gtioca_polarity;         ///< Polarity control for GTIOCxA input/output pin.
+    gpt_gtioc_polarity_t gtiocb_polarity;         ///< Polarity control for GTIOCxB input/output pin.
 } gpt_extended_cfg_t;
 
 /**********************************************************************************************************************
@@ -407,6 +425,9 @@ fsp_err_t R_GPT_Enable(timer_ctrl_t * const p_ctrl);
 fsp_err_t R_GPT_Disable(timer_ctrl_t * const p_ctrl);
 fsp_err_t R_GPT_PeriodSet(timer_ctrl_t * const p_ctrl, uint32_t const period_counts);
 fsp_err_t R_GPT_DutyCycleSet(timer_ctrl_t * const p_ctrl, uint32_t const duty_cycle_counts, uint32_t const pin);
+fsp_err_t R_GPT_CompareMatchSet(timer_ctrl_t * const        p_ctrl,
+                                uint32_t const              compare_match_value,
+                                timer_compare_match_t const match_channel);
 fsp_err_t R_GPT_InfoGet(timer_ctrl_t * const p_ctrl, timer_info_t * const p_info);
 fsp_err_t R_GPT_StatusGet(timer_ctrl_t * const p_ctrl, timer_status_t * const p_status);
 fsp_err_t R_GPT_CounterSet(timer_ctrl_t * const p_ctrl, uint32_t counter);
@@ -425,9 +446,6 @@ fsp_err_t R_GPT_CallbackSet(timer_ctrl_t * const          p_api_ctrl,
                             timer_callback_args_t * const p_callback_memory);
 fsp_err_t R_GPT_Close(timer_ctrl_t * const p_ctrl);
 fsp_err_t R_GPT_PwmOutputDelayInitialize(void);
-fsp_err_t R_GPT_CompareMatchSet(timer_ctrl_t * const        p_ctrl,
-                                uint32_t const              compare_match_value,
-                                timer_compare_match_t const match_channel);
 
 /*******************************************************************************************************************//**
  * @} (end defgroup GPT)

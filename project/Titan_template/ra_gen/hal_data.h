@@ -227,6 +227,7 @@ void NULL(transfer_callback_args_t * p_args);
 #if OSPI_CFG_DOTF_SUPPORT_ENABLE
     #include "r_sce_if.h"
 #endif
+
 extern const spi_flash_instance_t g_ospi1;
 extern ospi_b_instance_ctrl_t g_ospi1_ctrl;
 extern const spi_flash_cfg_t g_ospi1_cfg;
@@ -298,6 +299,7 @@ void NULL(transfer_callback_args_t * p_args);
 #if OSPI_CFG_DOTF_SUPPORT_ENABLE
     #include "r_sce_if.h"
 #endif
+
 extern const spi_flash_instance_t g_ospi_b;
 extern ospi_b_instance_ctrl_t g_ospi_b_ctrl;
 extern const spi_flash_cfg_t g_ospi_b_cfg;

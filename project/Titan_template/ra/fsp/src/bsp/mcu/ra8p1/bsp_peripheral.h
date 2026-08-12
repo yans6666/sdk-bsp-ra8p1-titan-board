@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Renesas Electronics Corporation and/or its affiliates
+* Copyright (c) 2020 - 2026 Renesas Electronics Corporation and/or its affiliates
 *
 * SPDX-License-Identifier: BSD-3-Clause
 */
@@ -67,6 +67,8 @@
 #define BSP_PERIPHERAL_DOC_PRESENT               (1)
 #define BSP_PERIPHERAL_DOC_B_PRESENT             (0)
 #define BSP_PERIPHERAL_DRW_PRESENT               (1)
+#define BSP_PERIPHERAL_DSMIF_PRESENT             (0)
+#define BSP_PERIPHERAL_DSMIF_CHANNEL_MASK        (0x0U)
 #define BSP_PERIPHERAL_DTC_PRESENT               (1)
 #define BSP_PERIPHERAL_ECCAFL_PRESENT            (0)
 #define BSP_PERIPHERAL_ECCAFL_CHANNEL_MASK       (0x0U)

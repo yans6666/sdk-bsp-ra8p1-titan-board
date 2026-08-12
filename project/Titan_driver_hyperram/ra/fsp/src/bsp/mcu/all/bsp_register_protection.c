@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Renesas Electronics Corporation and/or its affiliates
+* Copyright (c) 2020 - 2026 Renesas Electronics Corporation and/or its affiliates
 *
 * SPDX-License-Identifier: BSD-3-Clause
 */
@@ -29,7 +29,7 @@
  **********************************************************************************************************************/
 
 /** Used for holding reference counters for protection bits. */
-volatile uint16_t g_protect_counters[4] BSP_SECTION_EARLY_INIT;
+volatile uint16_t g_protect_counters[5] BSP_SECTION_EARLY_INIT;
 
 /** Masks for setting or clearing the PRCR register. Use -1 for size because PWPR in MPC is used differently. */
 static const uint16_t g_prcr_masks[] =
@@ -38,6 +38,7 @@ static const uint16_t g_prcr_masks[] =
     0x0002U,                           /* PRC1. */
     0x0008U,                           /* PRC3. */
     0x0010U,                           /* PRC4. */
+    0x0020U,                           /* PRC5. */
 };
 
 /*******************************************************************************************************************//**

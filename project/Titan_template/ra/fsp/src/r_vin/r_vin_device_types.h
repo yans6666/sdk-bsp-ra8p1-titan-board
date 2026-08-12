@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Renesas Electronics Corporation and/or its affiliates
+* Copyright (c) 2020 - 2026 Renesas Electronics Corporation and/or its affiliates
 *
 * SPDX-License-Identifier: BSD-3-Clause
 */
@@ -178,6 +178,7 @@ typedef struct st_vin_input_ctrl
 typedef struct st_vin_output_ctrl
 {
     uint8_t * image_buffer[3];         ///< Pointer to Image Buffer Memory Base (64-byte aligned)
+    bool      use_runtime_buffer;      ///< 1: use runtime buffer, 0: use static buffer
 } vin_output_ctrl_t;
 
 /** VIN Conversion Control Structure */
@@ -213,6 +214,7 @@ typedef struct st_vin_conversion_data
         struct
         {
             uint32_t y_mul              : 14; ///< Y Multiplication Coefficient2 for RGB Calculation
+            uint32_t                    : 2;
             uint32_t round_down_disable : 1;  ///< Round Down Disable
             uint32_t                    : 15;
         }        yc_rgb_conversion_setting_1_bits;
@@ -250,7 +252,7 @@ typedef struct st_vin_conversion_data
             uint32_t bcbmul2 : 14;     ///< Cb Multiplication Coefficient 2 for B Calculation
             uint32_t         : 2;
             uint32_t gcbmul2 : 14;     ///< Cb Multiplication Coefficient 2 for G Calculation
-            uint32_t         : 4;
+            uint32_t         : 2;
         }        yc_rgb_conversion_setting_4_bits;
         uint32_t yc_rgb_conversion_setting_4_mask;
     };
@@ -282,8 +284,8 @@ typedef struct st_vin_conversion_data
             {
                 struct
                 {
-                    uint32_t vfrac : 12; ///< Multiplier (Fractional Part) of Vertical Scaling Factor
-                    uint32_t vmant : 4;  ///< Multiplier (Integral Part) of Vertical Scaling Factor
+                    uint16_t vfrac : 12; ///< Multiplier (Fractional Part) of Vertical Scaling Factor
+                    uint16_t vmant : 4;  ///< Multiplier (Integral Part) of Vertical Scaling Factor
                 }        vertical_bits;
                 uint16_t vertical_mask;
             };
@@ -291,8 +293,8 @@ typedef struct st_vin_conversion_data
             {
                 struct
                 {
-                    uint32_t hfrac : 12; ///< Multiplier (Fractional Part) of Horizontal Scaling Factor
-                    uint32_t hmant : 4;  ///< Multiplier (Integral Part) of Horizontal Scaling Factor
+                    uint16_t hfrac : 12; ///< Multiplier (Fractional Part) of Horizontal Scaling Factor
+                    uint16_t hmant : 4;  ///< Multiplier (Integral Part) of Horizontal Scaling Factor
                 }        horizontal_bits;
                 uint16_t horizontal_mask;
             };
@@ -379,6 +381,7 @@ typedef union e_vin_module_status
         uint32_t memory_active  : 1;   ///< External memory capture is active
         uint32_t                : 2;
         uint32_t latest_buffer  : 2;   ///< Latest valid frame buffer (0b11 : No valid frame buffer)
+        uint32_t                : 11;
     }        bits;
     uint32_t mask;
 } vin_module_status_t;

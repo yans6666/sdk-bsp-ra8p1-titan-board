@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Renesas Electronics Corporation and/or its affiliates
+* Copyright (c) 2020 - 2026 Renesas Electronics Corporation and/or its affiliates
 *
 * SPDX-License-Identifier: BSD-3-Clause
 */
@@ -21,8 +21,6 @@
 #define SPI_B_REG(channel)    ((R_SPI_B0_Type *) ((uint32_t) R_SPI_B0 +                         \
                                                   ((uint32_t) R_SPI_B1 - (uint32_t) R_SPI_B0) * \
                                                   (channel)))
-
-#define SPI_B_DTC_MAX_TRANSFER            (0x10000)
 
 #define SPI_B_DTC_RX_TRANSFER_SETTINGS    ((TRANSFER_MODE_NORMAL << TRANSFER_SETTINGS_MODE_BITS) |         \
                                            (TRANSFER_SIZE_1_BYTE << TRANSFER_SETTINGS_SIZE_BITS) |         \
@@ -77,6 +75,9 @@ void spi_b_rxi_isr(void);
 void spi_b_txi_isr(void);
 void spi_b_tei_isr(void);
 void spi_b_eri_isr(void);
+
+void spi_b_rx_dmac_callback(spi_b_instance_ctrl_t const * const p_ctrl);
+void spi_b_tx_dmac_callback(spi_b_instance_ctrl_t const * const p_ctrl);
 
 /***********************************************************************************************************************
  * Private global variables
@@ -136,14 +137,18 @@ fsp_err_t R_SPI_B_Open (spi_ctrl_t * p_api_ctrl, spi_cfg_t const * const p_cfg)
     FSP_ASSERT(NULL != p_cfg);
     FSP_ASSERT(NULL != p_cfg->p_callback);
     FSP_ASSERT(NULL != p_cfg->p_extend);
-    FSP_ERROR_RETURN(BSP_FEATURE_SPI_MAX_CHANNEL > p_cfg->channel, FSP_ERR_IP_CHANNEL_NOT_PRESENT);
-    FSP_ASSERT(p_cfg->rxi_irq >= 0);
-    FSP_ASSERT(p_cfg->txi_irq >= 0);
+    FSP_ERROR_RETURN(BSP_FEATURE_SPI_NUM_CHANNELS > p_cfg->channel, FSP_ERR_IP_CHANNEL_NOT_PRESENT);
     FSP_ASSERT(p_cfg->tei_irq >= 0);
     FSP_ASSERT(p_cfg->eri_irq >= 0);
 
- #if SPI_B_TRANSMIT_FROM_RXI_ISR == 1
     spi_b_extended_cfg_t * p_extend = (spi_b_extended_cfg_t *) p_cfg->p_extend;
+    if (SPI_B_BURST_TRANSFER_WITHOUT_DELAY == p_extend->burst_interframe_delay)
+    {
+        /* SPI_B burst transfer without delay is not supported in Clock Synchronous operation. */
+        FSP_ERROR_RETURN(SPI_B_SSL_MODE_CLK_SYN != p_extend->spi_clksyn, FSP_ERR_UNSUPPORTED);
+    }
+
+ #if SPI_B_TRANSMIT_FROM_RXI_ISR == 1
 
     /* Half Duplex - Transmit Only mode is not supported when transmit interrupt is handled in the RXI ISR. */
     FSP_ERROR_RETURN(p_extend->spi_comm != SPI_B_COMMUNICATION_TRANSMIT_ONLY, FSP_ERR_UNSUPPORTED);
@@ -321,7 +326,7 @@ fsp_err_t R_SPI_B_Close (spi_ctrl_t * const p_api_ctrl)
 
     p_ctrl->open = 0;
 
-#if SPI_B_DTC_SUPPORT_ENABLE == 1
+#if SPI_B_CFG_DMA_SUPPORT_ENABLE == 1
     if (NULL != p_ctrl->p_cfg->p_transfer_rx)
     {
         p_ctrl->p_cfg->p_transfer_rx->p_api->close(p_ctrl->p_cfg->p_transfer_rx->p_ctrl);
@@ -333,9 +338,23 @@ fsp_err_t R_SPI_B_Close (spi_ctrl_t * const p_api_ctrl)
     }
 #endif
 
-    /* Disable interrupts in NVIC. */
-    R_BSP_IrqDisable(p_ctrl->p_cfg->txi_irq);
-    R_BSP_IrqDisable(p_ctrl->p_cfg->rxi_irq);
+    /* Disable SPI interrupts. */
+    p_ctrl->p_regs->SPCR &=
+        ~(R_SPI_B0_SPCR_SPTIE_Msk | R_SPI_B0_SPCR_SPRIE_Msk | R_SPI_B0_SPCR_CENDIE_Msk | R_SPI_B0_SPCR_SPEIE_Msk);
+
+    /* Disable interrupts in NVIC. When using DMA for data transfer, TXI and RXI interrupts
+     * are not required and typically disabled. Check if the IRQ number is valid (>= 0) before calling R_BSP_IrqDisable()
+     * to avoid disabling nonexistent interrupts. */
+    if (p_ctrl->p_cfg->txi_irq >= 0)
+    {
+        R_BSP_IrqDisable(p_ctrl->p_cfg->txi_irq);
+    }
+
+    if (p_ctrl->p_cfg->rxi_irq >= 0)
+    {
+        R_BSP_IrqDisable(p_ctrl->p_cfg->rxi_irq);
+    }
+
     R_BSP_IrqDisable(p_ctrl->p_cfg->tei_irq);
     R_BSP_IrqDisable(p_ctrl->p_cfg->eri_irq);
 
@@ -344,6 +363,17 @@ fsp_err_t R_SPI_B_Close (spi_ctrl_t * const p_api_ctrl)
 
     /* Clear the status register. */
     p_ctrl->p_regs->SPSRC = SPI_B_PRV_SPSRC_ALL_CLEAR;
+
+    /* Reset FIFO buffer (TX/RX pointers initialized). */
+    p_ctrl->p_regs->SPFCR = R_SPI_B0_SPFCR_SPFRST_Msk;
+
+    if ((SPI_MODE_MASTER == p_ctrl->p_cfg->operating_mode) &&
+        (SPI_B_BURST_TRANSFER_WITHOUT_DELAY ==
+         ((spi_b_extended_cfg_t *) p_ctrl->p_cfg->p_extend)->burst_interframe_delay))
+    {
+        /* Reset TTRG to 0. */
+        p_ctrl->p_regs->SPDCR2 &= ~(R_SPI_B0_SPDCR2_TTRG_Msk);
+    }
 
     return FSP_SUCCESS;
 }
@@ -366,13 +396,13 @@ fsp_err_t R_SPI_B_CalculateBitrate (uint32_t bitrate, spi_b_clock_source_t clock
     uint32_t desired_divider;
     if (SPI_B_CLOCK_SOURCE_PCLK == clock_source)
     {
-        desired_divider = R_FSP_SystemClockHzGet(BSP_FEATURE_SPI_CLK);
+        desired_divider = R_FSP_SystemClockHzGet(BSP_FEATURE_SPI_CLOCK);
     }
     else
     {
-#if BSP_FEATURE_BSP_HAS_SCISPI_CLOCK
+#if BSP_FEATURE_SCI_HAS_SCISPI_CLOCK
         desired_divider = R_FSP_SciSpiClockHzGet();
-#elif BSP_FEATURE_BSP_HAS_SPI_CLOCK
+#elif BSP_FEATURE_SPI_HAS_CLOCK
         desired_divider = R_FSP_SpiClockHzGet();
 #endif
     }
@@ -454,7 +484,7 @@ static fsp_err_t r_spi_b_transfer_config (spi_cfg_t const * const p_cfg)
 {
     fsp_err_t err = FSP_SUCCESS;
 
-#if SPI_B_DTC_SUPPORT_ENABLE == 1
+#if SPI_B_CFG_DMA_SUPPORT_ENABLE == 1
     const transfer_instance_t * p_transfer_tx = p_cfg->p_transfer_tx;
     void * p_spdr = (void *) &(SPI_B_REG(p_cfg->channel)->SPDR);
     if (p_transfer_tx)
@@ -598,6 +628,15 @@ static void r_spi_b_hw_config (spi_b_instance_ctrl_t * p_ctrl)
     /* Enable all delay settings. */
     if (SPI_MODE_MASTER == p_ctrl->p_cfg->operating_mode)
     {
+        if (SPI_B_BURST_TRANSFER_WITHOUT_DELAY == p_extend->burst_interframe_delay)
+        {
+            /* Enable burst transfer without delay. */
+            spcr |= R_SPI_B0_SPCR_BFDS_Msk;
+
+            /* Transmit buffer empty flag is raised only when FIFO is fully empty (TTRG = 3). */
+            p_ctrl->p_regs->SPDCR2 |= R_SPI_B0_SPDCR2_TTRG_Msk;
+        }
+
         /* Note that disabling delay settings is same as setting delay to 1. */
         spcmd0 |= (uint32_t) R_SPI_B0_SPCMD0_SPNDEN_Msk | R_SPI_B0_SPCMD0_SLNDEN_Msk | R_SPI_B0_SPCMD0_SCKDEN_Msk;
 
@@ -623,7 +662,7 @@ static void r_spi_b_hw_config (spi_b_instance_ctrl_t * p_ctrl)
     p_ctrl->p_regs->SPCR = spcr & ~R_SPI_B0_SPCR_MSTR_Msk;
 
     /* Read back SPCR to ensure 1 TCLK has passed
-     * (see Figure 30.64 Note 1 in the RA6T2 User's Manual (R01UH0951EJ0100)) */
+     * (see Note 1 of figure "Transmission flow in master mode" in the SPI section of the relevant hardware manual) */
     p_ctrl->p_regs->SPCR;
 
     /* Include MSTR bit */
@@ -637,8 +676,16 @@ static void r_spi_b_hw_config (spi_b_instance_ctrl_t * p_ctrl)
  **********************************************************************************************************************/
 static void r_spi_b_nvic_config (spi_b_instance_ctrl_t * p_ctrl)
 {
-    R_BSP_IrqCfgEnable(p_ctrl->p_cfg->txi_irq, p_ctrl->p_cfg->txi_ipl, p_ctrl);
-    R_BSP_IrqCfgEnable(p_ctrl->p_cfg->rxi_irq, p_ctrl->p_cfg->rxi_ipl, p_ctrl);
+    if (p_ctrl->p_cfg->txi_irq >= 0)
+    {
+        R_BSP_IrqCfgEnable(p_ctrl->p_cfg->txi_irq, p_ctrl->p_cfg->txi_ipl, p_ctrl);
+    }
+
+    if (p_ctrl->p_cfg->rxi_irq >= 0)
+    {
+        R_BSP_IrqCfgEnable(p_ctrl->p_cfg->rxi_irq, p_ctrl->p_cfg->rxi_ipl, p_ctrl);
+    }
+
     R_BSP_IrqCfgEnable(p_ctrl->p_cfg->eri_irq, p_ctrl->p_cfg->eri_ipl, p_ctrl);
 
     R_BSP_IrqCfg(p_ctrl->p_cfg->tei_irq, p_ctrl->p_cfg->tei_ipl, p_ctrl);
@@ -658,6 +705,22 @@ static void r_spi_b_bit_width_config (spi_b_instance_ctrl_t * p_ctrl)
     /* Configure data length based on the selected bit width . */
     spcmd0 &= ~R_SPI_B0_SPCMD0_SPB_Msk;
     spcmd0 |= (uint32_t) (p_ctrl->bit_width) << R_SPI_B0_SPCMD0_SPB_Pos;
+
+    spi_b_extended_cfg_t * p_extend = ((spi_b_extended_cfg_t *) p_ctrl->p_cfg->p_extend);
+    if ((SPI_MODE_MASTER == p_ctrl->p_cfg->operating_mode) &&
+        (p_extend && (SPI_B_BURST_TRANSFER_WITHOUT_DELAY == p_extend->burst_interframe_delay)))
+    {
+        if (1 != p_ctrl->count)
+        {
+            /* Configure SSL Level Keep Setting if length is greater than 1. */
+            spcmd0 |= R_SPI_B0_SPCMD0_SSLKP_Msk;
+        }
+        else
+        {
+            /* Disable SSL Level Keep since length is 1 (not a burst transfer). */
+            spcmd0 &= ~R_SPI_B0_SPCMD0_SSLKP_Msk;
+        }
+    }
 
     p_ctrl->p_regs->SPCMD0 = spcmd0;
 }
@@ -702,14 +765,14 @@ static void r_spi_b_start_transfer (spi_b_instance_ctrl_t * p_ctrl)
     }
     else
     {
-        /* Enable the SPI Transfer. */
-        p_ctrl->p_regs->SPCR_b.SPE = 1;
+        /* Enable the SPI Transfer and TX buffer empty interrupt */
+        p_ctrl->p_regs->SPCR |= R_SPI_B0_SPCR_SPTIE_Msk | R_SPI_B0_SPCR_SPE_Msk;
     }
 
 #else
 
-    /* Enable the SPI Transfer. */
-    p_ctrl->p_regs->SPCR_b.SPE = 1;
+    /* Enable the SPI Transfer and TX buffer empty interrupt */
+    p_ctrl->p_regs->SPCR |= R_SPI_B0_SPCR_SPTIE_Msk | R_SPI_B0_SPCR_SPE_Msk;
 #endif
 }
 
@@ -742,14 +805,30 @@ static fsp_err_t r_spi_b_write_read_common (spi_ctrl_t * const    p_api_ctrl,
     FSP_ERROR_RETURN(SPI_B_OPEN == p_ctrl->open, FSP_ERR_NOT_OPEN);
     FSP_ASSERT(p_src || p_dest);
     FSP_ASSERT(0 != length);
-    if (p_ctrl->p_cfg->p_transfer_tx || p_ctrl->p_cfg->p_transfer_rx)
+
+ #if SPI_B_CFG_DMA_SUPPORT_ENABLE
+    if (NULL != p_ctrl->p_cfg->p_transfer_rx)
     {
-        FSP_ASSERT(length <= SPI_B_DTC_MAX_TRANSFER);
+        transfer_properties_t transfer_info;
+        fsp_err_t             err = p_ctrl->p_cfg->p_transfer_rx->p_api->infoGet(p_ctrl->p_cfg->p_transfer_rx->p_ctrl,
+                                                                                 &transfer_info);
+        FSP_ERROR_RETURN(FSP_SUCCESS == err, err);
+        FSP_ASSERT(length <= transfer_info.transfer_length_max);
     }
+
+    if (NULL != p_ctrl->p_cfg->p_transfer_tx)
+    {
+        transfer_properties_t transfer_info;
+        fsp_err_t             err = p_ctrl->p_cfg->p_transfer_tx->p_api->infoGet(p_ctrl->p_cfg->p_transfer_tx->p_ctrl,
+                                                                                 &transfer_info);
+        FSP_ERROR_RETURN(FSP_SUCCESS == err, err);
+        FSP_ASSERT(length <= transfer_info.transfer_length_max);
+    }
+ #endif
 #endif
 
     /* Check to ensure SPE is cleared after the last transmission.
-     * (see RA6T2 User's Manual (R01UH0951EJ0100) Figure 30.64 "Transmission flow in master mode") */
+     * (see figure "Transmission flow in master mode" in the SPI section of the relevant hardware manual) */
     FSP_ERROR_RETURN(0 == p_ctrl->p_regs->SPPSR, FSP_ERR_IN_USE);
 
     p_ctrl->p_tx_data = p_src;
@@ -759,7 +838,7 @@ static fsp_err_t r_spi_b_write_read_common (spi_ctrl_t * const    p_api_ctrl,
     p_ctrl->count     = length;
     p_ctrl->bit_width = bit_width;
 
-#if SPI_B_DTC_SUPPORT_ENABLE == 1
+#if SPI_B_CFG_DMA_SUPPORT_ENABLE == 1
 
     /* Determine DTC transfer size */
     transfer_size_t size;
@@ -811,7 +890,21 @@ static fsp_err_t r_spi_b_write_read_common (spi_ctrl_t * const    p_api_ctrl,
 
         /* Configure the transmit DMA instance. */
         p_info->transfer_settings_word_b.size = size;
-        p_info->length = (uint16_t) length;
+
+        spi_b_extended_cfg_t * p_extend = ((spi_b_extended_cfg_t *) p_ctrl->p_cfg->p_extend);
+        if ((SPI_MODE_MASTER == p_ctrl->p_cfg->operating_mode) &&
+            (p_extend && (SPI_B_BURST_TRANSFER_WITHOUT_DELAY == p_extend->burst_interframe_delay)) &&
+            (1 != p_ctrl->count))
+        {
+            /* When the txi interrupt is called, length - 1 frames have already been transferred. */
+            p_ctrl->tx_count = length - 1;
+            p_info->length   = (uint16_t) (length - 1U);
+        }
+        else
+        {
+            p_info->length = (uint16_t) length;
+        }
+
         p_info->transfer_settings_word_b.src_addr_mode = TRANSFER_ADDR_MODE_INCREMENTED;
         p_info->p_src = p_src;
 
@@ -821,6 +914,9 @@ static fsp_err_t r_spi_b_write_read_common (spi_ctrl_t * const    p_api_ctrl,
             p_info->transfer_settings_word_b.src_addr_mode = TRANSFER_ADDR_MODE_FIXED;
             p_info->p_src = &dummy_tx;
         }
+
+        /* Disable the TX buffer empty interrupt before enabling transfer. */
+        p_ctrl->p_regs->SPCR_b.SPTIE = 0;
 
         fsp_err_t err = p_transfer_tx->p_api->reconfigure(p_transfer_tx->p_ctrl, p_info);
         FSP_ERROR_RETURN(FSP_SUCCESS == err, err);
@@ -884,7 +980,26 @@ static void r_spi_b_receive (spi_b_instance_ctrl_t * p_ctrl)
  **********************************************************************************************************************/
 static void r_spi_b_transmit (spi_b_instance_ctrl_t * p_ctrl)
 {
-    uint32_t tx_count = p_ctrl->tx_count;
+    uint32_t               tx_count = p_ctrl->tx_count;
+    spi_b_extended_cfg_t * p_extend = ((spi_b_extended_cfg_t *) p_ctrl->p_cfg->p_extend);
+    if ((SPI_MODE_MASTER == p_ctrl->p_cfg->operating_mode) &&
+        (p_extend && (SPI_B_BURST_TRANSFER_WITHOUT_DELAY == p_extend->burst_interframe_delay)))
+    {
+        if (0 == (p_ctrl->p_regs->SPSR & (1 << R_SPI_B0_SPSR_SPTEF_Pos)))
+        {
+
+            /* The TXI interrupt is triggered by DTC automatically.
+             * Skip handling it, as the transmit buffer is already preloaded with data. */
+            return;
+        }
+
+        if (tx_count == (p_ctrl->count - 1))
+        {
+            /* Disable SSLKP bit in last frame. */
+            p_ctrl->p_regs->SPCMD0 &= (uint32_t) (~R_SPI_B0_SPCMD0_SSLKP_Msk);
+        }
+    }
+
     if (tx_count == p_ctrl->count)
     {
         return;
@@ -973,6 +1088,19 @@ static void r_spi_b_call_callback (spi_b_instance_ctrl_t * p_ctrl, spi_event_t e
 }
 
 /*******************************************************************************************************************//**
+ * Callback that must be called after a RX DMAC transfer completes.
+ *
+ * @param[in]     p_ctrl     Pointer to SPI_B instance control block
+ **********************************************************************************************************************/
+void spi_b_rx_dmac_callback (spi_b_instance_ctrl_t const * const p_ctrl)
+{
+    /* If the transmit and receive ISRs are too slow to keep up at high bitrates,
+     * the hardware will generate an interrupt before all of the transfers are completed.
+     * By enabling the transfer end ISR here, all of the transfers are guaranteed to be completed. */
+    R_BSP_IrqEnableNoClear(p_ctrl->p_cfg->tei_irq);
+}
+
+/*******************************************************************************************************************//**
  * ISR called when data is loaded into SPI data register from the shift register.
  **********************************************************************************************************************/
 void spi_b_rxi_isr (void)
@@ -988,10 +1116,17 @@ void spi_b_rxi_isr (void)
     r_spi_b_receive(p_ctrl);
 
 #if SPI_B_TRANSMIT_FROM_RXI_ISR == 1
+    spi_b_extended_cfg_t * p_extend = ((spi_b_extended_cfg_t *) p_ctrl->p_cfg->p_extend);
 
-    /* It is a little faster to handle the transmit buffer empty event in the receive buffer full ISR.
-     * Note that this is only possible when the instance is not using a transfer instance to receive data. */
-    r_spi_b_transmit(p_ctrl);
+    /* Skip r_spi_b_transmit() when operating in master mode with burst transfer without delay and a transfer instance is used. */
+    if ((!p_ctrl->p_cfg->p_transfer_tx) ||
+        (!(p_extend && (SPI_B_BURST_TRANSFER_WITHOUT_DELAY == p_extend->burst_interframe_delay))) ||
+        (SPI_MODE_MASTER != p_ctrl->p_cfg->operating_mode))
+    {
+        /* It is a little faster to handle the transmit buffer empty event in the receive buffer full ISR.
+         * Note that this is only possible when the instance is not using a transfer instance to receive data. */
+        r_spi_b_transmit(p_ctrl);
+    }
 #endif
 
     if (p_ctrl->rx_count == p_ctrl->count)
@@ -1017,11 +1152,10 @@ void spi_b_txi_isr (void)
     IRQn_Type irq = R_FSP_CurrentIrqGet();
     R_BSP_IrqStatusClear(irq);
 
-#if SPI_B_TRANSMIT_FROM_RXI_ISR == 0
     spi_b_instance_ctrl_t * p_ctrl = (spi_b_instance_ctrl_t *) R_FSP_IsrContextGet(irq);
 
     spi_b_extended_cfg_t * p_extend = ((spi_b_extended_cfg_t *) p_ctrl->p_cfg->p_extend);
-
+#if SPI_B_TRANSMIT_FROM_RXI_ISR == 0
     if (SPI_B_COMMUNICATION_TRANSMIT_ONLY == p_extend->spi_comm)
     {
         /* Only enable the transfer end ISR if there are no receive buffer full interrupts expected to be handled
@@ -1047,6 +1181,14 @@ void spi_b_txi_isr (void)
     /* Transmit happens after checking if the last transfer has been written to the transmit buffer in order
      * to ensure that the end interrupt is not enabled while there is data still in the transmit buffer. */
     r_spi_b_transmit(p_ctrl);
+#else
+
+    /* Send last frame in master mode with burst transfer without delay. */
+    if ((SPI_MODE_MASTER == p_ctrl->p_cfg->operating_mode) &&
+        (p_extend && (SPI_B_BURST_TRANSFER_WITHOUT_DELAY == p_extend->burst_interframe_delay)))
+    {
+        r_spi_b_transmit(p_ctrl);
+    }
 #endif
 
     /* Restore context if RTOS is used */
@@ -1071,14 +1213,23 @@ void spi_b_tei_isr (void)
         R_BSP_IrqDisable(irq);
 
         /* Writing 0 to SPE generatates a TXI IRQ. Disable the TXI IRQ.
-         * (See Section 38.2.1 SPI Control Register in the RA6T2 manual R01UH0886EJ0100). */
-        R_BSP_IrqDisable(p_ctrl->p_cfg->txi_irq);
+         * (See "SPI Control Register (SPCR)" description in the relevant hardware manual). */
+        if (p_ctrl->p_cfg->txi_irq >= 0)
+        {
+            /* Writing 0 to SPE generatates a TXI IRQ. Disable the TXI IRQ.* (See "SPI Control Register (SPCR)" description in the relevant hardware manual). */
+            R_BSP_IrqDisable(p_ctrl->p_cfg->txi_irq);
 
-        /* Disable the SPI Transfer. */
-        p_ctrl->p_regs->SPCR_b.SPE = 0;
+            /* Disable the SPI Transfer. */
+            p_ctrl->p_regs->SPCR_b.SPE = 0;
 
-        /* Re-enable the TXI IRQ and clear the pending IRQ. */
-        R_BSP_IrqEnable(p_ctrl->p_cfg->txi_irq);
+            /* Re-enable the TXI IRQ and clear the pending IRQ. */
+            R_BSP_IrqEnable(p_ctrl->p_cfg->txi_irq);
+        }
+        else
+        {
+            /* Disable the SPI Transfer. */
+            p_ctrl->p_regs->SPCR_b.SPE = 0;
+        }
 
         /* Signal that a transfer has completed. */
         r_spi_b_call_callback(p_ctrl, SPI_EVENT_TRANSFER_COMPLETE);
@@ -1100,14 +1251,23 @@ void spi_b_eri_isr (void)
     spi_b_instance_ctrl_t * p_ctrl = (spi_b_instance_ctrl_t *) R_FSP_IsrContextGet(irq);
 
     /* Writing 0 to SPE generatates a TXI IRQ. Disable the TXI IRQ.
-     * (See Section 38.2.1 SPI Control Register in the RA6T2 manual R01UH0886EJ0100). */
-    R_BSP_IrqDisable(p_ctrl->p_cfg->txi_irq);
+     * (See "SPI Control Register (SPCR)" description in the relevant hardware manual). */
+    if (p_ctrl->p_cfg->txi_irq >= 0)
+    {
+        /* Writing 0 to SPE generatates a TXI IRQ. Disable the TXI IRQ.* (See "SPI Control Register (SPCR)" description in the relevant hardware manual). */
+        R_BSP_IrqDisable(p_ctrl->p_cfg->txi_irq);
 
-    /* Disable the SPI Transfer. */
-    p_ctrl->p_regs->SPCR_b.SPE = 0;
+        /* Disable the SPI Transfer. */
+        p_ctrl->p_regs->SPCR_b.SPE = 0;
 
-    /* Re-enable the TXI IRQ and clear the pending IRQ. */
-    R_BSP_IrqEnable(p_ctrl->p_cfg->txi_irq);
+        /* Re-enable the TXI IRQ and clear the pending IRQ. */
+        R_BSP_IrqEnable(p_ctrl->p_cfg->txi_irq);
+    }
+    else
+    {
+        /* Disable the SPI Transfer. */
+        p_ctrl->p_regs->SPCR_b.SPE = 0;
+    }
 
     /* Read the status register. */
     uint32_t status = p_ctrl->p_regs->SPSR;
@@ -1141,6 +1301,40 @@ void spi_b_eri_isr (void)
 
     /* Restore context if RTOS is used */
     FSP_CONTEXT_RESTORE
+}
+
+/*******************************************************************************************************************//**
+ * Callback that must be called after a TX DMAC transfer completes.
+ *
+ * @param[in]     p_ctrl     Pointer to SPI_B instance control block
+ **********************************************************************************************************************/
+void spi_b_tx_dmac_callback (spi_b_instance_ctrl_t const * const p_ctrl)
+{
+    spi_b_extended_cfg_t * p_extend = ((spi_b_extended_cfg_t *) p_ctrl->p_cfg->p_extend);
+
+/* Send last frame if transfer length is greater than 1. */
+    if ((SPI_MODE_MASTER == p_ctrl->p_cfg->operating_mode) &&
+        (p_extend && (SPI_B_BURST_TRANSFER_WITHOUT_DELAY == p_extend->burst_interframe_delay)) &&
+        (1 != p_ctrl->count))
+    {
+        FSP_HARDWARE_REGISTER_WAIT(p_ctrl->p_regs->SPSR_b.SPTEF, 1U);
+        r_spi_b_transmit((spi_b_instance_ctrl_t *) p_ctrl);
+    }
+
+#if SPI_B_TRANSMIT_FROM_RXI_ISR == 0
+    if (p_extend && (SPI_B_COMMUNICATION_TRANSMIT_ONLY == p_extend->spi_comm))
+    {
+        /* Only enable the transfer end ISR if there are no receive buffer full interrupts expected to be handled
+         * after this interrupt. */
+
+        /* If DMA is used to transmit data, enable the interrupt after all the data has been transferred, but do not
+         * clear the IRQ Pending Bit. */
+        R_BSP_IrqEnableNoClear(p_ctrl->p_cfg->tei_irq);
+    }
+
+#else
+    FSP_PARAMETER_NOT_USED(p_ctrl);
+#endif
 }
 
 /* End of file R_SPI. */

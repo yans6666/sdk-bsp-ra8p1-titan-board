@@ -29,5 +29,7 @@
   "isPreBuildContentGenEnabled": true,
   "isPostBuildContentGenEnabled": true,
   "isTargetDeviceSupportsTrustZone": true,
-  "buildOptionsMap": {}
+  "buildOptionsMap": {},
+  "targetDeviceCommand": "R7KA8P1KF",
+  "targetCoreName": "CPU0"
 }

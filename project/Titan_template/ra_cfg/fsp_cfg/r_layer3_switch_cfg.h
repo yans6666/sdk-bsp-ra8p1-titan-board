@@ -9,6 +9,10 @@
 
             #define LAYER3_SWITCH_CFG_AVAILABLE_QUEUE_NUM (5)
 
+            #define LAYER3_SWITCH_CFG_GPTP_ENABLE (1)
+
+            #define LAYER3_SWITCH_CFG_TAS_ENABLE (0)
+
             #ifdef __cplusplus
             }
             #endif

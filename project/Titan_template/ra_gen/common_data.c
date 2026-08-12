@@ -170,7 +170,7 @@ uint8_t vin_image_buffer_3[VIN_BYTES_PER_FRAME] BSP_ALIGN_VARIABLE(128) BSP_PLAC
             .input_ctrl.cfg_bits.lut_enable                      = 0,
             .input_ctrl.cfg_bits.dithering_direction             = false,
             .input_ctrl.cfg_bits.yuv444_conversion               = VIN_YUV444_CONVERSION_MODE_DATA_EXTEND,
-            .input_ctrl.cfg_bits.scaling_enable                  = 0,
+            .input_ctrl.cfg_bits.scaling_enable                  = false,
             .input_ctrl.cfg_bits.pixel_data_clipping             = VIN_PIXEL_DATA_CLIPPING_DEFAULT,
 
             .input_ctrl.preclip.line_start                       = 0,
@@ -186,10 +186,10 @@ uint8_t vin_image_buffer_3[VIN_BYTES_PER_FRAME] BSP_ALIGN_VARIABLE(128) BSP_PLAC
             .input_ctrl.csi_detect_bits.even_field_detect_enable = 1,
             .input_ctrl.csi_detect_bits.even_field_number        = 0,
 
-            .input_ctrl.image_stride                             = 640,
+            .input_ctrl.image_stride                             = VIN_CFG_IMAGE_STRIDE,
 
             .output_ctrl.image_buffer                            = {vin_image_buffer_1, vin_image_buffer_2, vin_image_buffer_3},
-
+            .output_ctrl.use_runtime_buffer                      = 0,
             .conversion_ctrl.data_mode_bits.data_conversion_mode      = VIN_CONVERSION_MODE_NONE,
             .conversion_ctrl.data_mode_bits.alpha_bit_value           = 1,
             .conversion_ctrl.data_mode_bits.output_data_byte_swap     = 1,
@@ -219,8 +219,8 @@ uint8_t vin_image_buffer_3[VIN_BYTES_PER_FRAME] BSP_ALIGN_VARIABLE(128) BSP_PLAC
             .conversion_data.uds_scale_bits.vertical_mask        = 4096,
             .conversion_data.uds_scale_bits.horizontal_mask      = 4096,
 
-            .conversion_data.uds_bwidth_bits.bwidth_v       = 32,
-            .conversion_data.uds_bwidth_bits.bwidth_h       = 32,
+            .conversion_data.uds_bwidth_bits.bwidth_v       = 64,
+            .conversion_data.uds_bwidth_bits.bwidth_h       = 64,
 
             .conversion_data.uds_clipping_bits.cl_vsize          = 480,
             .conversion_data.uds_clipping_bits.cl_hsize          = 640,
@@ -370,8 +370,8 @@ const external_irq_instance_t g_external_irq20 =
 };
 const ether_phy_lsi_cfg_t g_rmac_phy_lsi1 =
 {
-    .address           = 1,
-    .type              = ETHER_PHY_LSI_TYPE_CUSTOM,
+    .address                = 1,
+    .type                   = ETHER_PHY_LSI_TYPE_CUSTOM,
 };
 rmac_phy_instance_ctrl_t g_rmac_phy1_ctrl;
 #define RA_NOT_DEFINED (1)
@@ -396,6 +396,28 @@ const rmac_phy_extended_cfg_t g_rmac_phy1_extended_cfg =
 #endif
     },
     .default_phy_lsi_cfg_index = 1,
+    .frame_preemption_enable = false,
+    .frame_preemption_verification_interval = 10,
+    .easi_irq =
+    {
+    #if defined(VECTOR_NUMBER_ETHER_EASI0)
+        VECTOR_NUMBER_ETHER_EASI0,
+    #else
+        FSP_INVALID_VECTOR,
+    #endif
+    #if defined(VECTOR_NUMBER_ETHER_EASI1)
+        VECTOR_NUMBER_ETHER_EASI1,
+    #else
+        FSP_INVALID_VECTOR,
+    #endif
+    },
+    .easi_ipl =
+    {
+        (BSP_IRQ_DISABLED),
+        (BSP_IRQ_DISABLED),
+    },
+    .p_callback = NULL,
+    .p_context = NULL,
 };
 #undef RA_NOT_DEFINED
 
@@ -420,8 +442,8 @@ const ether_phy_instance_t g_rmac_phy1 =
 };
 const ether_phy_lsi_cfg_t g_rmac_phy_lsi0 =
 {
-    .address           = 2,
-    .type              = ETHER_PHY_LSI_TYPE_CUSTOM,
+    .address                = 2,
+    .type                   = ETHER_PHY_LSI_TYPE_CUSTOM,
 };
 rmac_phy_instance_ctrl_t g_rmac_phy0_ctrl;
 #define RA_NOT_DEFINED (1)
@@ -446,6 +468,28 @@ const rmac_phy_extended_cfg_t g_rmac_phy0_extended_cfg =
 #endif
     },
     .default_phy_lsi_cfg_index = 0,
+    .frame_preemption_enable = false,
+    .frame_preemption_verification_interval = 10,
+    .easi_irq =
+    {
+    #if defined(VECTOR_NUMBER_ETHER_EASI0)
+        VECTOR_NUMBER_ETHER_EASI0,
+    #else
+        FSP_INVALID_VECTOR,
+    #endif
+    #if defined(VECTOR_NUMBER_ETHER_EASI1)
+        VECTOR_NUMBER_ETHER_EASI1,
+    #else
+        FSP_INVALID_VECTOR,
+    #endif
+    },
+    .easi_ipl =
+    {
+        (BSP_IRQ_DISABLED),
+        (BSP_IRQ_DISABLED),
+    },
+    .p_callback = NULL,
+    .p_context = NULL,
 };
 #undef RA_NOT_DEFINED
 
@@ -475,32 +519,134 @@ uint8_t g_layer3_switch0_mac_address_port1[6] = { 0x00,0x11,0x22,0x33,0x44,0x55 
 layer3_switch_l3_filter_t g_layer3_switch0_l3_filter_list[10];
 
 #define RA_NOT_DEFINED (1)
+layer3_switch_cbs_cfg_t p_cbs_cfg_list_port0 =
+{
+    .band_width_list =
+    {
+        0, 0,
+        0, 0,
+        0, 0,
+        0, 0
+    },
+    .max_burst_num_list =
+    {
+        0, 0,
+        0, 0,
+        0, 0,
+        0, 0
+    },
+};
+layer3_switch_cbs_cfg_t p_cbs_cfg_list_port1 =
+{
+    .band_width_list =
+    {
+        0, 0,
+        0, 0,
+        0, 0,
+        0, 0
+    },
+    .max_burst_num_list =
+    {
+        0, 0,
+        0, 0,
+        0, 0,
+        0, 0
+    },
+};
+
+layer3_switch_port_cfg_t g_layer3_switch0_port0_cfg =
+{
+    .p_cbs_cfg = &p_cbs_cfg_list_port0,
+    .forwarding_to_cpu_enable = true,
+    .p_mac_address = g_layer3_switch0_mac_address_port0,
+    .p_callback = NULL,
+    .p_callback_memory = NULL,
+    .p_context = NULL,
+};
+layer3_switch_port_cfg_t g_layer3_switch0_port1_cfg =
+{
+    .p_cbs_cfg = &p_cbs_cfg_list_port1,
+    .forwarding_to_cpu_enable = true,
+    .p_mac_address = g_layer3_switch0_mac_address_port1,
+    .p_callback = NULL,
+    .p_callback_memory = NULL,
+    .p_context = NULL,
+};
+
 const layer3_switch_extended_cfg_t g_layer3_switch0_extended_cfg =
 {
     .p_ether_phy_instances          = {
 #if (RA_NOT_DEFINED != g_rmac_phy0)
     &g_rmac_phy0,
 #else
-    	NULL,
+        NULL,
 #endif
 #if (RA_NOT_DEFINED != g_rmac_phy1)
     &g_rmac_phy1,
 #else
-    	NULL,
+        NULL,
 #endif
-	},
+    },
     .fowarding_target_port_masks =
     {
         (LAYER3_SWITCH_PORT_BITMASK_PORT1 | LAYER3_SWITCH_PORT_BITMASK_PORT2 |  0U),
         (LAYER3_SWITCH_PORT_BITMASK_PORT0 | LAYER3_SWITCH_PORT_BITMASK_PORT2 |  0U),
+        ( 0U),
+    },
+    .ipv_queue_preemptable_bitmask =
+    {
+        ( 0U),
+        ( 0U),
+    },
+    .frame_preemption_fragment_size =
+    {
+    	LAYER3_SWITCH_PREEMPTABLE_FRAME_FRAGMENT_SIZE_64BYTE,
+    	LAYER3_SWITCH_PREEMPTABLE_FRAME_FRAGMENT_SIZE_64BYTE,
     },
     .p_mac_addresses =
     {
     g_layer3_switch0_mac_address_port0,
     g_layer3_switch0_mac_address_port1
     },
+    .ipv_queue_depth_list =
+    {
+        {
+            64, 64,
+            64, 64,
+            64, 64,
+            64, 64
+        },
+        {
+            64, 64,
+            64, 64,
+            64, 64,
+            64, 64
+        }
+    },
+    .p_port_cfg_list = { &g_layer3_switch0_port0_cfg, &g_layer3_switch0_port1_cfg },
     .l3_filter_list = g_layer3_switch0_l3_filter_list,
     .l3_filter_list_length = 10,
+    .etha_error_irq_port_0 =
+    #if defined(VECTOR_NUMBER_ETHER_EAEI0)
+    VECTOR_NUMBER_ETHER_EAEI0,
+    #else
+        FSP_INVALID_VECTOR,
+    #endif
+    .etha_error_irq_port_1 =
+    #if defined(VECTOR_NUMBER_ETHER_EAEI1)
+    VECTOR_NUMBER_ETHER_EAEI1,
+    #else
+        FSP_INVALID_VECTOR,
+    #endif
+    .etha_error_ipl_port_0 = (12),
+    .etha_error_ipl_port_1 = (12),
+    .p_gptp_instance =
+#if (RA_NOT_DEFINED != RA_NOT_DEFINED)
+    &RA_NOT_DEFINED,
+#else
+        NULL,
+#endif
+    .gptp_timer_numbers = {0, 1},
 };
 #undef RA_NOT_DEFINED
 
